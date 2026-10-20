@@ -47,7 +47,8 @@ pub fn run() -> gtk::glib::ExitCode {
     // Initialize gettext
     unsafe { setlocale(LocaleCategory::LcAll, String::new()) };
     bind_textdomain_codeset(GETTEXT_PACKAGE, "UTF-8").expect("Failed to set textdomain codeset");
-    bindtextdomain(GETTEXT_PACKAGE, locale_dir()).expect("Invalid argument passed to bindtextdomain");
+    bindtextdomain(GETTEXT_PACKAGE, locale_dir())
+        .expect("Invalid argument passed to bindtextdomain");
 
     textdomain(GETTEXT_PACKAGE).expect("Invalid string passed to textdomain");
 

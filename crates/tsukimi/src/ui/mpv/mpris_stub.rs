@@ -36,7 +36,10 @@ impl MPVPage {
 
     /// Whether the track list differs from the one MPRIS was last told about.
     /// Always `false` without MPRIS: nothing consumes the track list.
-    pub fn mpris_track_list_changed(&self, _episode_list: &[crate::ui::provider::tu_item::TuItem]) -> bool {
+    pub fn mpris_track_list_changed(
+        &self,
+        _episode_list: &[crate::ui::provider::tu_item::TuItem],
+    ) -> bool {
         false
     }
 
