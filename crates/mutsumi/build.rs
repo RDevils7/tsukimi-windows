@@ -10,6 +10,9 @@ use std::{
     process::Command,
 };
 
+#[cfg(windows)]
+use std::process::Stdio;
+
 const APP_RESOURCE_PREFIX: &str = "/io/github/mutsumiuniverse/mutsumi";
 
 fn main() {
@@ -87,13 +90,19 @@ fn compile_blp(input_dir: &Path, output_dir: &Path, inputs: &[PathBuf]) -> Vec<P
         return Vec::new();
     }
 
-    let status = Command::new("blueprint-compiler")
+    let mut command = blueprint_compiler_command();
+    command
         .arg("batch-compile")
         .arg(output_dir)
         .arg(input_dir)
-        .args(inputs)
-        .status()
-        .expect("Failed to execute blueprint-compiler");
+        .args(inputs);
+
+    let status = command.status().unwrap_or_else(|error| {
+        panic!(
+            "Failed to execute blueprint-compiler ({}): {error}",
+            command.get_program().to_string_lossy()
+        )
+    });
 
     if !status.success() {
         panic!(
@@ -107,6 +116,107 @@ fn compile_blp(input_dir: &Path, output_dir: &Path, inputs: &[PathBuf]) -> Vec<P
         .into_iter()
         .filter(|path| path.extension().and_then(OsStr::to_str) == Some("ui"))
         .collect()
+}
+
+/// Return a [`Command`] that invokes `blueprint-compiler`.
+///
+/// On Linux the compiler is a regular executable on `PATH`. On Windows,
+/// MSYS2 installs it as an extensionless Python script
+/// (`/ucrt64/bin/blueprint-compiler`); `CreateProcess` only probes `*.exe`
+/// names and therefore reports "program not found" for it. Prefer a native
+/// `blueprint-compiler.exe` when one is available, otherwise run the
+/// bundled `blueprintcompiler` module through a Python interpreter that
+/// can import it.
+fn blueprint_compiler_command() -> Command {
+    if program_on_path("blueprint-compiler.exe") {
+        return Command::new("blueprint-compiler.exe");
+    }
+
+    #[cfg(windows)]
+    {
+        // Equivalent to running the MSYS2 `blueprint-compiler` entry-point
+        // script. blueprint-compiler 0.18 calls `main(version, libdir)`
+        // while 0.22+ calls `main()` and reads those values from its
+        // config module; dispatch on the signature so both layouts work.
+        // `("uninstalled", None)` is what the upstream script itself
+        // falls back to when the meson values are missing.
+        const PYTHON_BOOTSTRAP: &str = "\
+import inspect
+from blueprintcompiler.main import main
+if len(inspect.signature(main).parameters) >= 2:
+    main('uninstalled', None)
+else:
+    main()
+";
+
+        for python in python_interpreters() {
+            if !python_has_blueprintcompiler(&python) {
+                continue;
+            }
+
+            println!(
+                "blueprint-compiler is an extensionless script on Windows; \
+                 running it through {}",
+                python.display()
+            );
+
+            let mut command = Command::new(python);
+            command.arg("-c").arg(PYTHON_BOOTSTRAP);
+            return command;
+        }
+    }
+
+    Command::new("blueprint-compiler")
+}
+
+/// Check whether `program` names an existing file in one of the
+/// directories listed in `PATH`.
+fn program_on_path(program: &str) -> bool {
+    let Some(paths) = env::var_os("PATH") else {
+        return false;
+    };
+
+    env::split_paths(&paths)
+        .filter(|dir| !dir.as_os_str().is_empty())
+        .any(|dir| dir.join(program).is_file())
+}
+
+/// Return every `python*.exe` interpreter found in `PATH`, in search order.
+#[cfg(windows)]
+fn python_interpreters() -> Vec<PathBuf> {
+    let Some(paths) = env::var_os("PATH") else {
+        return Vec::new();
+    };
+
+    let mut interpreters = Vec::new();
+    for dir in env::split_paths(&paths) {
+        if dir.as_os_str().is_empty() {
+            continue;
+        }
+
+        for name in ["python.exe", "python3.exe"] {
+            let candidate = dir.join(name);
+            if candidate.is_file() {
+                interpreters.push(candidate);
+            }
+        }
+    }
+
+    interpreters
+}
+
+/// Check whether `python` can import the `blueprintcompiler` module that
+/// the MSYS2 `blueprint-compiler` package installs next to the interpreter.
+#[cfg(windows)]
+fn python_has_blueprintcompiler(python: &Path) -> bool {
+    Command::new(python)
+        .arg("-c")
+        .arg("import blueprintcompiler")
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .status()
+        .is_ok_and(|status| status.success())
 }
 
 fn cleanup_generated_ui_files(ui_dir: &Path) {

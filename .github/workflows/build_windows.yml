@@ -48,6 +48,19 @@ jobs:
           toolchain: stable-x86_64-pc-windows-gnu
           cache: false
 
+      - name: Verify blueprint toolchain
+        run: |
+          pacman -Q mingw-w64-ucrt-x86_64-blueprint-compiler
+          python -c "from blueprintcompiler.main import main; print('blueprintcompiler module OK')"
+          # blueprint-compiler must be able to load the GTK typelibs; run one
+          # real compile of every .blp file before cargo needs it. Invoking it
+          # through bash exercises the shebang script the way a user would,
+          # which crates/mutsumi/build.rs works around on Windows (the MSYS2
+          # package ships an extensionless script that CreateProcess cannot
+          # execute directly).
+          bash -c 'exec blueprint-compiler batch-compile /tmp/bc-verify crates/mutsumi/resources/blueprints crates/mutsumi/resources/blueprints/*.blp'
+          ls /tmp/bc-verify
+
       - name: Build tsukimi
         env:
           DANDANAPI_SECRET_KEY: ${{ secrets.DANDANAPI_SECRET_KEY }}

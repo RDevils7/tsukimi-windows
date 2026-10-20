@@ -67,9 +67,14 @@ pacman -S --needed \
 ```
 
 `blueprint-compiler` is required by `crates/mutsumi/build.rs` to compile
-the `.blp` templates at build time; install it from MSYS2 (a pip-installed
-`blueprint-compiler` on Windows is not on the MSYS2 `PATH` and will fail
-with `program not found`).
+the `.blp` templates at build time; install it from MSYS2. The MSYS2
+package ships it as an extensionless Python script
+(`/ucrt64/bin/blueprint-compiler`), which `CreateProcess` cannot execute
+directly — Rust's `Command` only probes `*.exe` names — so `build.rs` runs
+the bundled `blueprintcompiler` module through the Python interpreter
+installed next to it (the same interpreter the script's shebang points
+at). A pip-installed `blueprint-compiler` is deliberately not used: it is
+not on the MSYS2 `PATH` and would additionally require PyGObject.
 
 ```bash
 rustup toolchain install stable-x86_64-pc-windows-gnu
