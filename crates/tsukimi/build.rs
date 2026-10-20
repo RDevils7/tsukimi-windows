@@ -11,6 +11,7 @@
 //! - `*.gschema.xml`      → compiled to `gschemas.compiled` under `OUT_DIR`
 //! - application manifest + icon embedded through `tsukimi_manifest.rc`
 
+#[cfg(windows)]
 use std::{
     env,
     fs,
@@ -38,10 +39,12 @@ fn main() {
     }
 }
 
+#[cfg(windows)]
 fn manifest_dir() -> PathBuf {
     PathBuf::from(env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR is not set"))
 }
 
+#[cfg(windows)]
 fn out_dir() -> PathBuf {
     PathBuf::from(env::var("OUT_DIR").expect("OUT_DIR is not set"))
 }

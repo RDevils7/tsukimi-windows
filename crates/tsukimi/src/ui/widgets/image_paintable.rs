@@ -329,16 +329,16 @@ impl ImagePaintable {
     fn load_next_frame(&self) {
         #[cfg(target_os = "linux")]
         {
-            let Some(image) = self
-                .imp()
-                .image
-                .borrow()
-                .as_ref()
-                .and_then(|source| match &**source {
-                    FrameSource::Glycin(image) => Some(image.clone()),
-                    #[cfg(not(target_os = "linux"))]
-                    FrameSource::Pixbuf { .. } => None,
-                })
+            let Some(image) =
+                self.imp()
+                    .image
+                    .borrow()
+                    .as_ref()
+                    .and_then(|source| match &**source {
+                        FrameSource::Glycin(image) => Some(image.clone()),
+                        #[cfg(not(target_os = "linux"))]
+                        FrameSource::Pixbuf { .. } => None,
+                    })
             else {
                 return;
             };

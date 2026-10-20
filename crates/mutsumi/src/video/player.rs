@@ -20,11 +20,7 @@ use super::backend::{
 #[cfg(not(target_os = "linux"))]
 use crate::MPVGLArea;
 #[cfg(target_os = "linux")]
-use crate::{
-    MutsumiVideoSink,
-    VIEWPORT_CHANNEL,
-    Viewport,
-};
+use crate::MutsumiVideoSink;
 
 mod imp {
     use std::cell::Cell;
@@ -116,10 +112,9 @@ mod imp {
             // render API (see `MPVGLArea`), which becomes the Bin child.
             #[cfg(target_os = "linux")]
             {
-                let offload = gtk::GraphicsOffload::new();
                 let picture = gtk::Picture::new();
                 picture.set_paintable(Some(&self.backend));
-                offload.set_child(Some(&picture));
+                let offload = gtk::GraphicsOffload::new(Some(&picture));
                 obj.set_child(Some(&offload));
             }
 
