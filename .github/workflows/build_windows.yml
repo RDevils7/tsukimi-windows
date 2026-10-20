@@ -1,0 +1,72 @@
+name: Windows
+on:
+  workflow_call:
+
+jobs:
+  build:
+    name: Build (x86_64)
+
+    runs-on: windows-latest
+
+    defaults:
+      run:
+        shell: msys2 {0}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup MSYS2
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          path-type: inherit
+          install: >-
+            git
+            mingw-w64-x86_64-toolchain
+            mingw-w64-x86_64-pkgconf
+            mingw-w64-x86_64-gtk4
+            mingw-w64-x86_64-libadwaita
+            mingw-w64-x86_64-mpv
+            mingw-w64-x86_64-libepoxy
+            mingw-w64-x86_64-adwaita-icon-theme
+            mingw-w64-x86_64-gettext
+            mingw-w64-x86_64-gstreamer
+            mingw-w64-x86_64-gst-plugins-base
+            mingw-w64-x86_64-gst-plugins-good
+            mingw-w64-x86_64-gst-plugins-bad
+            mingw-w64-x86_64-gst-plugins-ugly
+            mingw-w64-x86_64-gst-libav
+            mingw-w64-x86_64-nsis
+            zip
+
+      - name: Setup Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable-x86_64-pc-windows-gnu
+          cache: false
+
+      - name: Build tsukimi
+        env:
+          DANDANAPI_SECRET_KEY: ${{ secrets.DANDANAPI_SECRET_KEY }}
+          RUSTFLAGS: -L native=/mingw64/lib
+        run: cargo build --release --locked --target x86_64-pc-windows-gnu
+
+      - name: Package
+        run: bash build-aux/windows/package.sh x86_64-pc-windows-gnu dist
+
+      - name: Build installer
+        run: |
+          VERSION="$(grep -m1 '^version' crates/tsukimi/Cargo.toml | cut -d '"' -f 2)"
+          makensis "-DAPP_VERSION=$VERSION" installer/tsukimi.nsi
+          mv tsukimi-x86_64-windows-setup.exe dist/
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: tsukimi-x86_64-windows
+          path: |
+            dist/tsukimi-x86_64-windows.zip
+            dist/tsukimi-x86_64-windows-setup.exe
+          archive: false

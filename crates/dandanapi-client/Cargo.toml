@@ -1,0 +1,22 @@
+[package]
+name = "dandanapi-client"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license = "MIT"
+description = "A Rust client for the dandanapi API."
+
+[dependencies]
+dandanapi.workspace = true
+base64.workspace = true
+chrono.workspace = true
+futures.workspace = true
+reqwest = { workspace = true, features = ["json", "query"] }
+serde = { workspace = true, features = ["derive"] }
+serde_json.workspace = true
+sha2.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }

@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+  <template parent="AdwNavigationPage" class="ServerPanel">
+    <property name="title">Tsukimi</property>
+    <child>
+      <object class="AdwToolbarView">
+        <child>
+          <object class="AdwToastOverlay" id="toast">
+            <child>
+              <object class="GtkBox">
+                <property name="orientation">horizontal</property>
+                <property name="margin-start">20</property>
+                <property name="spacing">20</property>
+                <property name="valign">fill</property>
+                <child>
+                  <object class="GtkScrolledWindow">
+                    <property name="hscrollbar-policy">never</property>
+                    <property name="vexpand">true</property>
+                    <child>
+                      <object class="GtkBox">
+                        <property name="orientation">vertical</property>
+                        <property name="margin-top">20</property>
+                        <property name="margin-start">20</property>
+                        <property name="margin-end">40</property>
+                        <property name="spacing">20</property>
+                        <property name="valign">start</property>
+                        <property name="halign">start</property>
+                        <child>
+                          <object class="GtkBox">
+                            <property name="orientation">horizontal</property>
+                            <property name="spacing">20</property>
+                            <child>
+                              <object class="GtkLabel" id="server_title">
+                                <property name="label" translatable="yes"/>
+                                <property name="halign">start</property>
+                                <property name="valign">start</property>
+                                <property name="ellipsize">middle</property>
+                                <style>
+                                  <class name="title-2"/>
+                                </style>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkButton">
+                                <property name="valign">center</property>
+                                <property name="icon-name">view-refresh-symbolic</property>
+                                <property name="tooltip-text" translatable="yes">Restart Server</property>
+                                <signal name="clicked" handler="on_restart" swapped="yes"/>
+                                <style>
+                                  <class name="accent"/>
+                                </style>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkButton">
+                                <property name="valign">center</property>
+                                <property name="icon-name">system-shutdown-symbolic</property>
+                                <property name="tooltip-text" translatable="yes">Shutdown Server</property>
+                                <signal name="clicked" handler="on_shutdown" swapped="yes"/>
+                                <style>
+                                  <class name="accent"/>
+                                </style>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkLabel" id="server_version">
+                            <property name="label" translatable="yes"/>
+                            <property name="halign">start</property>
+                            <style>
+                              <class name="dimmed"/>
+                            </style>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="AdwPreferencesGroup" id="system_log_group">
+                            <property name="title" translatable="yes">System Logs</property>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="AdwPreferencesGroup" id="activity_log_group">
+                            <property name="title" translatable="yes">Activity Logs</property>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkScrolledWindow">
+                    <property name="hscrollbar-policy">never</property>
+                    <property name="vexpand">true</property>
+                    <child>
+                      <object class="GtkBox">
+                        <property name="orientation">vertical</property>
+                        <property name="margin-start">12</property>
+                        <property name="margin-end">40</property>
+                        <property name="spacing">20</property>
+                        <property name="valign">start</property>
+                        <child>
+                          <object class="AdwPreferencesGroup" id="task_group">
+                            <property name="title" translatable="yes">Tasks</property>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+    </child>
+  </template>
+</interface>

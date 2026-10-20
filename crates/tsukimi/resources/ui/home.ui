@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+  <template parent="AdwNavigationPage" class="HomePage">
+    <property name="title">Tsukimi</property>
+    <child>
+      <object class="AdwToolbarView">
+        <child>
+          <object class="GtkScrolledWindow" id="root">
+            <property name="hscrollbar-policy">never</property>
+            <child>
+              <object class="GtkBox">
+                <property name="orientation">vertical</property>
+                <property name="valign">start</property>
+                <child>
+                  <object class="HortuScrolled" id="libhortu">
+                    <property name="title" translatable="yes">Library</property>
+                  </object>
+                </child>
+                <child>
+                  <object class="HortuScrolled" id="hishortu">
+                    <property name="title" translatable="yes">Continue Watching</property>
+                    <property name="is-resume">True</property>
+                    <property name="prefer-thumb">True</property>
+                    <property name="card-shape">Backdrop</property>
+                  </object>
+                </child>
+                <child>
+                  <object class="HortuScrolled" id="nextuphortu">
+                    <property name="title" translatable="yes">Next Up</property>
+                    <property name="is-resume">True</property>
+                    <property name="prefer-thumb">True</property>
+                    <property name="card-shape">Backdrop</property>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkBox" id="libsbox">
+                    <property name="orientation">vertical</property>
+                    <property name="spacing">6</property>
+                    <property name="height-request">1000</property>
+                    <property name="margin-bottom">18</property>
+                  </object>
+                </child>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+    </child>
+  </template>
+</interface>

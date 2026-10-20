@@ -1,0 +1,12 @@
+using Gtk 4.0;
+using Adw 1;
+
+// The video child is built in Rust code because it differs per platform:
+// Linux wraps the dmabuf paintable in a GraphicsOffload + Picture pair,
+// everywhere else the GLArea rendering through the mpv render API is the
+// direct child of the Bin.
+template $MutsumiVideoPlayer: Adw.Bin {
+    hexpand: true;
+    vexpand: true;
+    layout-manager: $MutsumiVideoLayout {};
+}

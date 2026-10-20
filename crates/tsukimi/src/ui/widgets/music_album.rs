@@ -1,0 +1,404 @@
+use std::collections::BTreeMap;
+
+use adw::{
+    prelude::*,
+    subclass::prelude::*,
+};
+use gettextrs::gettext;
+use gtk::{
+    CompositeTemplate,
+    gio,
+    gio::ListStore,
+    glib,
+    template_callbacks,
+};
+
+use super::{
+    song_widget::format_duration,
+    utils::{
+        GlobalToast,
+        run_time_ticks_to_label,
+    },
+};
+use crate::{
+    bing_song_model,
+    client::{
+        error::UserFacingError,
+        jellyfin_client::JELLYFIN_CLIENT,
+        structs::{
+            List,
+            SongWidgetView,
+        },
+    },
+    ui::{
+        provider::{
+            core_song::CoreSong,
+            tu_item::TuItem,
+        },
+        widgets::{
+            song_widget::{
+                SongWidget,
+                State,
+            },
+            tu_item::{
+                CardOptions,
+                select_picture_source,
+            },
+        },
+    },
+    utils::{
+        CacheEvent,
+        CachePolicy,
+        fetch_with_cache,
+        resolve_picture_file,
+        spawn,
+    },
+};
+
+pub(crate) mod imp {
+    use std::cell::{
+        OnceCell,
+        RefCell,
+    };
+
+    use glib::{
+        SignalHandlerId,
+        subclass::InitializingObject,
+    };
+
+    use super::*;
+    use crate::{
+        ui::{
+            provider::tu_item::TuItem,
+            widgets::{
+                hortu_scrolled::HortuScrolled,
+                item_actionbox::ItemActionsBox,
+            },
+        },
+        utils::spawn_g_timeout,
+    };
+
+    #[derive(CompositeTemplate, Default, glib::Properties)]
+    #[template(resource = "/moe/tsuna/tsukimi/ui/album_widget.ui")]
+    #[properties(wrapper_type = super::AlbumPage)]
+    pub struct AlbumPage {
+        #[property(get, set, construct_only)]
+        pub item: OnceCell<TuItem>,
+        #[property(get, set, construct_only, builder(SongWidgetView::default()))]
+        pub view_type: OnceCell<SongWidgetView>,
+        #[template_child]
+        pub cover_image: TemplateChild<gtk::Picture>,
+        #[template_child]
+        pub title_label: TemplateChild<gtk::Label>,
+        #[template_child]
+        pub artist_label: TemplateChild<gtk::Label>,
+        #[template_child]
+        pub released_label: TemplateChild<gtk::Label>,
+        #[template_child]
+        pub listbox: TemplateChild<gtk::Box>,
+        #[template_child]
+        pub recommendhortu: TemplateChild<HortuScrolled>,
+        #[template_child]
+        pub artisthortu: TemplateChild<HortuScrolled>,
+        #[template_child]
+        pub actionbox: TemplateChild<ItemActionsBox>,
+        pub signal_id: RefCell<Option<SignalHandlerId>>,
+    }
+
+    #[glib::object_subclass]
+    impl ObjectSubclass for AlbumPage {
+        const NAME: &'static str = "AlbumPage";
+        type Type = super::AlbumPage;
+        type ParentType = adw::NavigationPage;
+
+        fn class_init(klass: &mut Self::Class) {
+            klass.bind_template();
+            klass.bind_template_instance_callbacks();
+        }
+
+        fn instance_init(obj: &InitializingObject<Self>) {
+            obj.init_template();
+        }
+    }
+
+    #[glib::derived_properties]
+    impl ObjectImpl for AlbumPage {
+        fn constructed(&self) {
+            self.parent_constructed();
+            let obj = self.obj();
+
+            spawn_g_timeout(glib::clone!(
+                #[weak]
+                obj,
+                async move {
+                    obj.set_album().await;
+                    obj.get_songs().await;
+                    obj.set_lists().await;
+                }
+            ));
+        }
+    }
+
+    impl WidgetImpl for AlbumPage {}
+    impl AdwDialogImpl for AlbumPage {}
+    impl NavigationPageImpl for AlbumPage {}
+}
+
+glib::wrapper! {
+    /// A page for displaying an album.
+    pub struct AlbumPage(ObjectSubclass<imp::AlbumPage>)
+        @extends gtk::Widget, adw::Dialog, adw::NavigationPage, @implements gtk::Accessible, gtk::Buildable, gtk::ConstraintTarget;
+}
+
+use crate::ui::widgets::disc_box::DiscBox;
+
+#[template_callbacks]
+impl AlbumPage {
+    pub fn new(item: TuItem) -> Self {
+        let view_type = if &item.item_type() == "MusicAlbum" {
+            SongWidgetView::MusicAlbumItem
+        } else {
+            SongWidgetView::PlaylistItem
+        };
+        glib::Object::builder()
+            .property("item", item)
+            .property("view_type", view_type)
+            .build()
+    }
+
+    pub async fn set_album(&self) {
+        let item = self.item();
+        let view_type = self.view_type();
+
+        let imp = self.imp();
+
+        imp.actionbox.set_id(Some(item.id()));
+        imp.actionbox.set_item_type(item.item_type());
+
+        if item.is_favorite() {
+            imp.actionbox.set_btn_active(true);
+        } else {
+            imp.actionbox.set_btn_active(false);
+        }
+
+        imp.title_label.set_text(&item.name());
+
+        if view_type == SongWidgetView::MusicAlbumItem {
+            imp.artist_label.set_text(&item.albumartist_name());
+
+            let duration = item.run_time_ticks() / 10000000;
+            let release = format!(
+                "{}, {}",
+                item.production_year(),
+                format_duration(duration as i64)
+            );
+            imp.released_label.set_text(&release);
+        } else {
+            imp.artist_label.set_text("...");
+
+            let duration = item.run_time_ticks();
+            let release = run_time_ticks_to_label(duration).to_string();
+            imp.released_label.set_text(&release);
+        }
+
+        if let Some(source) = select_picture_source(&item, CardOptions::default())
+            && let Ok(image) = resolve_picture_file(source).await
+        {
+            imp.cover_image.set_file(Some(&image));
+
+            spawn(glib::clone!(
+                #[weak(rename_to = obj)]
+                self,
+                async move {
+                    let window = obj.root().and_downcast::<super::window::Window>().unwrap();
+                    window.set_rootpic(image);
+                }
+            ));
+        }
+    }
+
+    pub async fn get_songs(&self) {
+        let item = self.item();
+        let view_type = self.view_type();
+        let id = item.id();
+
+        let mut events = fetch_with_cache(
+            &format!("audio_{}", item.id()),
+            CachePolicy::ReadCacheAndRefresh,
+            async move { JELLYFIN_CLIENT.get_songs(&id).await },
+        )
+        .await;
+
+        while let Some(event) = events.recv().await {
+            match event {
+                CacheEvent::Data {
+                    data: mut songs, ..
+                } => {
+                    if view_type == SongWidgetView::PlaylistItem {
+                        self.imp().artist_label.set_text(&format!(
+                            "{} {}",
+                            songs.items.len(),
+                            gettext("Songs")
+                        ));
+                    }
+
+                    let listbox = self.imp().listbox.get();
+                    while let Some(child) = listbox.last_child() {
+                        listbox.remove(&child);
+                    }
+
+                    let mut disc_boxes: BTreeMap<u32, super::disc_box::DiscBox> = BTreeMap::new();
+
+                    if view_type == SongWidgetView::MusicAlbumItem {
+                        songs.items.sort_by_key(|song| song.index_number);
+                    }
+                    for song in songs.items {
+                        let item = TuItem::from_simple(song);
+                        let parent_index_number = if view_type == SongWidgetView::MusicAlbumItem {
+                            item.parent_index_number()
+                        } else {
+                            0
+                        };
+
+                        let song_widget =
+                            disc_boxes.entry(parent_index_number).or_insert_with(|| {
+                                let new_disc_box =
+                                    super::disc_box::DiscBox::new(view_type.to_owned());
+                                new_disc_box.set_disc(parent_index_number);
+                                new_disc_box.connect_closure(
+                                    "song-activated",
+                                    true,
+                                    glib::closure_local!(
+                                        #[watch(rename_to = obj)]
+                                        self,
+                                        move |_: DiscBox, song_widget| {
+                                            obj.song_activated(song_widget);
+                                        }
+                                    ),
+                                );
+                                new_disc_box
+                            });
+                        song_widget.add_song(item);
+                    }
+
+                    for disc_box in disc_boxes.values() {
+                        self.imp().listbox.append(disc_box);
+                    }
+                }
+                CacheEvent::Error(e) => {
+                    self.toast(e.to_user_facing());
+                    return;
+                }
+            }
+        }
+    }
+
+    fn song_activated(&self, song_widget: SongWidget) {
+        song_widget.set_state(State::Playing);
+        let active_model = self.song_model();
+        let active_core_song = song_widget.coresong();
+        bing_song_model!(self, active_model, active_core_song);
+    }
+
+    fn song_model(&self) -> ListStore {
+        let imp = self.imp();
+        let listbox = imp.listbox.get();
+        let liststore = gio::ListStore::new::<CoreSong>();
+        for child in listbox.observe_children().into_iter().flatten() {
+            let Ok(discbox) = child.downcast::<DiscBox>() else {
+                continue;
+            };
+            for child in discbox
+                .imp()
+                .listbox
+                .observe_children()
+                .into_iter()
+                .flatten()
+            {
+                let Ok(song_widget) = child.downcast::<SongWidget>() else {
+                    continue;
+                };
+                let item = song_widget.coresong();
+                liststore.append(&item)
+            }
+        }
+        liststore
+    }
+
+    pub async fn set_lists(&self) {
+        self.sets("Recommend").await;
+        self.sets("More From").await;
+    }
+
+    pub async fn sets(&self, types: &str) {
+        let hortu = match types {
+            "Recommend" => self.imp().recommendhortu.get(),
+            "More From" => self.imp().artisthortu.get(),
+            _ => return,
+        };
+
+        if types == "More From" {
+            hortu.set_title(format!(
+                "{} {}",
+                gettext("More From"),
+                self.item().albumartist_name()
+            ));
+        } else {
+            hortu.set_title(gettext(types));
+        }
+
+        let id = self.item().id();
+        let artist_id = self.item().albumartist_id();
+        let types = types.to_string();
+
+        let mut events = fetch_with_cache(
+            &format!("item_{types}_{id}"),
+            CachePolicy::ReadCacheAndRefresh,
+            async move {
+                match types.as_str() {
+                    "Recommend" => JELLYFIN_CLIENT.get_similar(&id).await,
+                    "More From" => JELLYFIN_CLIENT.get_artist_albums(&id, &artist_id).await,
+                    _ => Ok(List::default()),
+                }
+            },
+        )
+        .await;
+
+        while let Some(event) = events.recv().await {
+            match event {
+                CacheEvent::Data { data, .. } => {
+                    if data.items.is_empty() {
+                        hortu.set_visible(false);
+                        continue;
+                    }
+
+                    hortu.set_visible(true);
+                    hortu.set_items(data.items);
+                }
+                CacheEvent::Error(e) => {
+                    self.toast(e.to_user_facing());
+                }
+            }
+        }
+    }
+
+    #[template_callback]
+    fn on_play_button_clicked(&self, _btn: gtk::Button) {
+        let imp = self.imp();
+        let active_model = self.song_model();
+        let Some(object) = imp.listbox.get().first_child() else {
+            return;
+        };
+        let Some(widget) = object
+            .downcast::<DiscBox>()
+            .unwrap()
+            .imp()
+            .listbox
+            .first_child()
+        else {
+            return;
+        };
+        let active_core_song = widget.downcast::<SongWidget>().unwrap().coresong();
+        bing_song_model!(self, active_model, active_core_song);
+    }
+}

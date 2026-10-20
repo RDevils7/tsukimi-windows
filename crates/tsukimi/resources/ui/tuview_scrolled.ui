@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+  <template parent="AdwBin" class="TuViewScrolled">
+    <child>
+      <object class="GtkOverlay" id="overlay">
+        <child>
+          <object class="GtkScrolledWindow" id="scrolled_window">
+            <property name="hscrollbar-policy">never</property>
+            <property name="vscrollbar-policy">always</property>
+            <property name="overlay-scrolling">False</property>
+          </object>
+        </child>
+        <child type="overlay">
+          <object class="GtkRevealer" id="spinner_revealer">
+            <property name="halign">center</property>
+            <property name="valign">end</property>
+            <property name="transition-type">slide-up</property>
+            <child>
+              <object class="AdwBin">
+                <property name="margin-bottom">50</property>
+                <child>
+                  <object class="AdwSpinner">
+                    <property name="height-request">30</property>
+                    <property name="width-request">30</property>
+                    <style>
+                      <class name="accent"/>
+                    </style>
+                  </object>
+                </child>
+                <style>
+                  <class name="scroll-spinner"/>
+                </style>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+    </child>
+  </template>
+  <object class="GtkGridView" id="grid">
+    <property name="margin-start">18</property>
+    <property name="margin-end">18</property>
+    <property name="single-click-activate">True</property>
+    <property name="min-columns">1</property>
+    <property name="max-columns">15</property>
+    <signal name="activate" handler="on_gridview_item_activated" swapped="yes"/>
+  </object>
+  <object class="GtkListView" id="list">
+    <property name="margin-start">18</property>
+    <property name="margin-end">18</property>
+    <property name="single-click-activate">True</property>
+    <signal name="activate" handler="on_listview_item_activated" swapped="yes"/>
+    <style>
+      <class name="tu-listview"/>
+    </style>
+  </object>
+</interface>

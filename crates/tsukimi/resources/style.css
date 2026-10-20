@@ -1,0 +1,431 @@
+@define-color transparent #00000000;
+
+.sbackground {
+  background: rgba(0, 0, 0, 0.15);
+}
+
+child {
+  margin: 9px;
+  border-radius: 15px;
+}
+
+button.pill.small {
+  font-size: 0.83333em;
+  border-radius: 99px;
+  margin: 0;
+  padding: 1px 12px;
+}
+
+button.pill.no-padding-small {
+  font-size: 0.83333em;
+  border-radius: 99px;
+  margin: 0;
+  padding: 0px;
+}
+
+button.pill.ultrasmall {
+  font-size: 0.75em;
+  border-radius: 99px;
+  margin: 0;
+  padding: 0px 8px;
+}
+
+.circular.smaller {
+  min-height: 28px;
+  min-width: 28px;
+}
+
+.mediainfo {
+  padding: 9px;
+  border-radius: 15px;
+}
+
+.mask {
+  filter: blur(5px);
+  border-radius: 10px;
+}
+
+.top-control-bar {
+  padding: 3px;
+}
+
+.logo {
+  background: transparent;
+}
+
+
+.bottom-bar {
+  background: transparent;
+}
+
+.smooth-scale {
+  padding-top: 0px;
+  padding-bottom: 0px;
+}
+
+.frame {
+  border: 2px solid @borders;
+  border-radius: 5px;
+}
+
+.coverimage {
+  border-radius: 10px;
+}
+
+.player-toolbar {
+  border-radius: 50px;
+  padding: 5px;
+}
+
+.mpv-top-bar {
+  background-image: linear-gradient(to bottom,
+      rgba(0, 0, 0, 0.72),
+      rgba(0, 0, 0, 0.34) 55%,
+      rgba(0, 0, 0, 0));
+  border-radius: 0;
+  color: white;
+  padding: 18px 20px 42px;
+}
+
+.mpv-bottom-bar {
+  background-image: linear-gradient(to top,
+      rgba(0, 0, 0, 0.78),
+      rgba(0, 0, 0, 0.48) 58%,
+      rgba(0, 0, 0, 0));
+  border-radius: 0;
+  color: white;
+  padding: 48px 36px 24px;
+}
+
+.mpv-play-button {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+.playing-song-label {
+  font-weight: bold;
+}
+
+.boxshadow {
+  box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
+  border-radius: 10px;
+}
+
+.tu-listview>row {
+  margin: 10px;
+  border-radius: 10px;
+}
+
+/* Starring */
+button.star:hover {
+  opacity: 1;
+}
+
+@keyframes rotate_star {
+  from {
+    -gtk-icon-transform: rotate(-72deg);
+  }
+
+  to {}
+}
+
+@keyframes rotate_unstar {
+  from {
+    -gtk-icon-transform: rotate(72deg);
+  }
+
+  to {}
+}
+
+button.star.interacted.starred image {
+  animation: rotate_star 0.4s ease;
+}
+
+button.star.interacted:not(.starred) image {
+  animation: rotate_unstar 0.4s ease;
+}
+
+.songwidget {
+  padding: 12px;
+}
+
+.no-padding {
+  padding: 0px;
+}
+
+.serverrow {
+  margin: 6px;
+  border-radius: 10px;
+}
+
+.horizontal-listview>row {
+  margin-left: 9px;
+  margin-right: 9px;
+  border-radius: 10px;
+}
+
+.vertical-listview>row {
+  margin: 9px;
+  border-radius: 10px;
+}
+
+picture {
+  border-radius: 10px;
+}
+
+listview {
+  background-color: transparent;
+}
+
+gridview {
+  background-color: transparent;
+}
+
+gridview > child:hover,
+gridview > child:selected {
+    background-color: transparent;
+    outline: none;
+    box-shadow: none;
+}
+
+gridview>child box {
+  margin: 0px;
+}
+
+overlay>label {
+  background-color: @accent_bg_color;
+  border-radius: 50px;
+  margin: 3px;
+}
+
+revealer>box>box>widget {
+  background-color: rgba(1, 1, 1, 0.1);
+  border-radius: 10px;
+}
+
+revealer>box>box>widget>box {
+  margin: 10px;
+}
+
+tabbar>revealer>box {
+  background-color: transparent;
+}
+
+scrolledwindow>viewport>box>box>box {
+  margin-left: 15px;
+  margin-top: 15px;
+}
+
+.osd>box {
+  margin: 0px;
+  padding: 0px;
+  border-radius: 10px;
+}
+
+placessidebar {
+  background-color: transparent;
+}
+
+.card {
+  box-shadow: none;
+}
+
+.sidebar-pane {
+  background-color: transparent;
+  box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
+}
+
+/* Expanding */
+row.expand.interacted.expanded image {
+  transform: rotate(-0.5turn);
+}
+
+row image {
+  transition: 200ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.themeselector {
+  margin: 9px;
+}
+
+.themeselector checkbutton {
+  padding: 0;
+  min-height: 44px;
+  min-width: 44px;
+  padding: 1px;
+  background-clip: content-box;
+  border-radius: 9999px;
+  box-shadow: inset 0 0 0 1px @borders;
+}
+
+.scroll-spinner {
+  background-color: rgba(255, 255, 255, 0.5);
+  padding: 8px;
+  border-radius: 99px;
+}
+
+.themeselector checkbutton.follow:checked,
+.themeselector checkbutton.light:checked,
+.themeselector checkbutton.dark:checked {
+  box-shadow: inset 0 0 0 2px @theme_selected_bg_color;
+}
+
+.themeselector checkbutton.follow {
+  background-image: linear-gradient(to bottom right,
+      #fff 49.99%,
+      #202020 50.01%);
+}
+
+.themeselector checkbutton.light {
+  background-color: #fff;
+}
+
+.themeselector checkbutton.dark {
+  background-color: #202020;
+}
+
+.themeselector checkbutton radio {
+  -gtk-icon-source: none;
+  border: none;
+  background: none;
+  box-shadow: none;
+  min-width: 12px;
+  min-height: 12px;
+  transform: translate(27px, 14px);
+  padding: 2px;
+}
+
+checkbutton.theme-selector radio:checked {
+  -gtk-icon-source: -gtk-icontheme("object-select-symbolic");
+  background-color: @theme_selected_bg_color;
+  color: @theme_selected_fg_color;
+}
+
+.filter-label {
+  outline-style: solid;
+  outline-width: 2px;
+  border-radius: 99px;
+}
+
+.filter-label.color1 {
+  color: rgb(162, 184, 241);
+}
+
+.filter-label.color2 {
+  color: rgb(153, 199, 255);
+}
+
+.filter-label.color3 {
+  color: rgb(112, 177, 230);
+}
+
+.filter-label.color4 {
+  color: rgb(125, 210, 227);
+}
+
+progressbar.accent > trough {
+  min-height: 6px;
+}
+
+progressbar.accent > trough > progress {
+  border-radius: 0;
+}
+
+.mpv-seekbar>trough {
+  min-height: 5px;
+}
+
+.count {
+  background-color: rgb(101, 144, 154);
+}
+
+.rating {
+  background-color: rgb(39, 75, 132);
+}
+
+.folder {
+  background-color: rgb(36, 96, 86);
+}
+
+.volume-bar {
+  padding: 10px;
+  border-radius: 50px;
+}
+
+.speed-label {
+  text-shadow: 3px 3px 5px alpha(black, 1);
+}
+
+.played-mark {
+	background-color: rgba(255, 255, 255, 0.5);
+}
+
+@media (prefers-color-scheme: dark) {
+  .scroll-spinner {
+    background-color: rgba(0, 0, 0, 0.5);
+  }
+
+  .played-mark {
+    background-color: rgba(0, 0, 0, 0.5);
+  }
+}
+
+
+.picture-loader {
+    background-color: transparent;
+    border-radius: 10px;
+}
+
+.tu-list-item-cover,
+.tu-list-item-card {
+    background-color: transparent;
+    box-shadow: 2px 2px 20px rgba(0, 0, 0, 0.3);
+    border-radius: 10px;
+}
+
+.tu-list-item-cover.inbox {
+    box-shadow: none;
+}
+
+.cover-progress-frame {
+    border-radius: 10px;
+}
+
+@keyframes blink {
+    from {
+        opacity: 1;
+    }
+
+    to {
+        opacity: 0.3;
+    }
+}
+
+.blink {
+    animation: blink 500ms infinite alternate;
+}
+
+.music-player {
+    background: linear-gradient(
+        135deg,
+        rgba(255, 255, 255, 0.35),
+        rgba(255, 255, 255, 0.55)
+    );
+    border-radius: 20px;
+    backdrop-filter: blur(15px);
+    margin-left: 24px;
+    margin-right: 24px;
+    margin-bottom: 18px;
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.15);
+}
+
+@media (prefers-color-scheme: dark) {
+    .music-player {
+        background: linear-gradient(
+            135deg,
+            rgba(30, 30, 30, 0.35),
+            rgba(30, 30, 30, 0.55)
+        );
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.15);
+    }
+}

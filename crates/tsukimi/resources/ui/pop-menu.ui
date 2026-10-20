@@ -1,0 +1,100 @@
+<?xml version="1.0"?>
+<interface>
+  <menu id="rightmenu">
+    <section>
+      <item>
+        <attribute name="custom">menu-info</attribute>
+      </item>
+    </section>
+    <section>
+      <item>
+        <attribute name="label" translatable="yes">Remove</attribute>
+        <attribute name="action">item.remove</attribute>
+        <attribute name="hidden-when">action-disabled</attribute>
+        <attribute name="accel">&lt;Control&gt;R</attribute>
+      </item>
+      <item>
+        <attribute name="label" translatable="yes">Like</attribute>
+        <attribute name="action">item.like</attribute>
+        <attribute name="hidden-when">action-disabled</attribute>
+        <attribute name="accel">&lt;Control&gt;L</attribute>
+      </item>
+      <item>
+        <attribute name="label" translatable="yes">Unlike</attribute>
+        <attribute name="action">item.unlike</attribute>
+        <attribute name="hidden-when">action-disabled</attribute>
+        <attribute name="accel">&lt;Control&gt;K</attribute>
+      </item>
+      <item>
+        <attribute name="label" translatable="yes">Mark as Played</attribute>
+        <attribute name="action">item.played</attribute>
+        <attribute name="hidden-when">action-disabled</attribute>
+        <attribute name="accel">&lt;Control&gt;P</attribute>
+      </item>
+      <item>
+        <attribute name="label" translatable="yes">Mark as Unplayed</attribute>
+        <attribute name="action">item.unplayed</attribute>
+        <attribute name="hidden-when">action-disabled</attribute>
+        <attribute name="accel">&lt;Control&gt;N</attribute>
+      </item>
+    </section>
+    <section>
+      <item>
+        <attribute name="label" translatable="yes">Edit Metadata</attribute>
+        <attribute name="action">item.editm</attribute>
+        <attribute name="hidden-when">action-disabled</attribute>
+        <attribute name="accel">&lt;Control&gt;M</attribute>
+      </item>
+      <item>
+        <attribute name="label" translatable="yes">Edit Images</attribute>
+        <attribute name="action">item.editi</attribute>
+        <attribute name="hidden-when">action-disabled</attribute>
+        <attribute name="accel">&lt;Control&gt;I</attribute>
+      </item>
+    </section>
+    <section>
+      <item>
+        <attribute name="label" translatable="yes">Identify</attribute>
+        <attribute name="action">item.identify</attribute>
+        <attribute name="hidden-when">action-disabled</attribute>
+        <attribute name="accel">&lt;Control&gt;Y</attribute>
+      </item>
+      <item>
+        <attribute name="label" translatable="yes">Remove Identification</attribute>
+        <attribute name="action">item.remove-identification</attribute>
+        <attribute name="hidden-when">action-disabled</attribute>
+        <attribute name="accel">&lt;Alt&gt;R</attribute>
+      </item>
+    </section>
+    <section>
+      <item>
+        <attribute name="label" translatable="yes">View Missing Episodes</attribute>
+        <attribute name="action">item.view-missing</attribute>
+        <attribute name="hidden-when">action-disabled</attribute>
+        <attribute name="accel">&lt;Control&gt;V</attribute>
+      </item>
+    </section>
+    <section>
+      <item>
+        <attribute name="label" translatable="yes">Refresh Metadata</attribute>
+        <attribute name="action">item.refresh</attribute>
+        <attribute name="hidden-when">action-disabled</attribute>
+        <attribute name="accel">&lt;Control&gt;E</attribute>
+      </item>
+      <item>
+        <attribute name="label" translatable="yes">Scan</attribute>
+        <attribute name="action">item.scan</attribute>
+        <attribute name="hidden-when">action-disabled</attribute>
+        <attribute name="accel">&lt;Control&gt;S</attribute>
+      </item>
+    </section>
+    <section>
+      <item>
+        <attribute name="label" translatable="yes">Delete</attribute>
+        <attribute name="action">item.delete</attribute>
+        <attribute name="hidden-when">action-disabled</attribute>
+        <attribute name="accel">&lt;Control&gt;D</attribute>
+      </item>
+    </section>
+  </menu>
+</interface>

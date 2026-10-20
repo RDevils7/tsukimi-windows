@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+  <template parent="AdwDialog" class="RefreshDialog">
+    <property name="content-width">820</property>
+    <property name="content-height">400</property>
+    <property name="width-request">360</property>
+    <property name="height-request">800</property>
+    <property name="title" translatable="yes">Refresh Metadata</property>
+    <child>
+      <object class="AdwToastOverlay">
+        <child>
+          <object class="AdwToolbarView">
+            <child type="top">
+              <object class="AdwHeaderBar"/>
+            </child>
+            <child>
+              <object class="AdwClamp">
+                <property name="margin-top">36</property>
+                <property name="margin-bottom">12</property>
+                <property name="vexpand">True</property>
+                <child>
+                  <object class="GtkBox">
+                    <property name="orientation">vertical</property>
+                    <property name="spacing">18</property>
+                    <property name="margin-start">12</property>
+                    <property name="margin-end">12</property>
+                    <child>
+                      <object class="GtkCheckButton" id="metadata_check">
+                        <property name="margin-start">12</property>
+                        <property name="label" translatable="yes">Replace All Metadata</property>
+                        <style>
+                          <class name="accent"/>
+                        </style>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkCheckButton" id="image_check">
+                        <property name="margin-start">12</property>
+                        <property name="label" translatable="yes">Replace All Images</property>
+                        <style>
+                          <class name="accent"/>
+                        </style>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="AdwPreferencesGroup">
+                        <child>
+                          <object class="AdwButtonRow">
+                            <property name="title" translatable="yes">Refresh</property>
+                            <property name="start-icon-name">checkmark-small-symbolic</property>
+                            <signal name="activated" handler="on_refresh" swapped="yes"/>
+                            <style>
+                              <class name="suggested-action"/>
+                            </style>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+    </child>
+  </template>
+</interface>

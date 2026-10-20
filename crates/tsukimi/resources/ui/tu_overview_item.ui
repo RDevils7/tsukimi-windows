@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+  <template parent="AdwBin" class="TuOverviewItem">
+    <property name="margin-top">4</property>
+    <property name="margin-bottom">4</property>
+    <child>
+      <object class="GtkBox">
+        <property name="orientation">vertical</property>
+        <property name="spacing">8</property>
+        <property name="valign">fill</property>
+        <child>
+          <object class="GtkBox" id="header_box">
+            <property name="orientation">horizontal</property>
+            <property name="spacing">8</property>
+            <property name="valign">fill</property>
+            <child>
+              <object class="HoverScale" id="hover_scale">
+                <property name="valign">fill</property>
+                <property name="max-scale">1.00</property>
+                <property name="margin-start">8</property>
+                <property name="margin-top">8</property>
+                <child>
+                  <object class="FixedBin" id="cover_frame">
+                    <property name="fixed-width">250</property>
+                    <property name="fixed-height">141</property>
+                    <property name="halign">center</property>
+                    <property name="valign">center</property>
+                    <property name="hexpand">False</property>
+                    <property name="vexpand">False</property>
+                    <property name="child">
+                      <object class="GtkOverlay" id="overlay">
+                        <property name="overflow">hidden</property>
+                    <style>
+                      <class name="cover-progress-frame"/>
+                    </style>
+                    <child type="overlay">
+                      <object class="GtkBox" id="overlay_button_box">
+                        <property name="orientation">horizontal</property>
+                        <property name="spacing">12</property>
+                        <property name="halign">end</property>
+                        <property name="valign">start</property>
+                        <property name="margin-end">8</property>
+                        <property name="margin-top">8</property>
+                      </object>
+                    </child>
+                    <child type="overlay">
+                      <object class="GtkProgressBar" id="progress_bar">
+                        <property name="visible">false</property>
+                        <property name="valign">end</property>
+                        <style>
+                          <class name="accent"/>
+                        </style>
+                      </object>
+                    </child>
+                      </object>
+                    </property>
+                  </object>
+                </child>
+              </object>
+            </child>
+            <child>
+              <object class="GtkBox" id="detail_box">
+                <property name="orientation">vertical</property>
+                <property name="spacing">8</property>
+                <property name="valign">center</property>
+                <property name="margin-start">8</property>
+                <property name="margin-end">8</property>
+                <property name="margin-top">8</property>
+                <property name="margin-bottom">8</property>
+                <property name="hexpand">true</property>
+                <child>
+                  <object class="GtkLabel" id="listlabel">
+                    <property name="justify">left</property>
+                    <property name="wrap">true</property>
+                    <property name="xalign">0</property>
+                    <property name="lines">3</property>
+                    <property name="ellipsize">middle</property>
+                    <attributes>
+                      <attribute name="weight" value="PANGO_WEIGHT_BOLD"/>
+                    </attributes>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkBox">
+                    <property name="orientation">horizontal</property>
+                    <property name="spacing">8</property>
+                    <property name="width-request">140</property>
+                    <child>
+                      <object class="GtkLabel" id="time_label">
+                        <property name="justify">left</property>
+                        <property name="wrap">true</property>
+                        <property name="xalign">0</property>
+                        <property name="visible">false</property>
+                        <attributes>
+                          <attribute name="scale" value="0.9"/>
+                        </attributes>
+                        <style>
+                          <class name="dimmed"/>
+                        </style>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label2">
+                        <property name="justify">left</property>
+                        <property name="wrap">true</property>
+                        <property name="xalign">0</property>
+                        <attributes>
+                          <attribute name="scale" value="0.9"/>
+                        </attributes>
+                        <style>
+                          <class name="dimmed"/>
+                        </style>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkLabel" id="inline_overview">
+                    <property name="justify">left</property>
+                    <property name="wrap">true</property>
+                    <property name="lines">6</property>
+                    <property name="ellipsize">end</property>
+                    <property name="xalign">0</property>
+                    <property name="visible">false</property>
+                    <property name="tooltip-text" bind-source="inline_overview" bind-property="label" bind-flags="sync-create"/>
+                    <attributes>
+                      <attribute name="scale" value="0.9"/>
+                    </attributes>
+                    <style>
+                      <class name="dimmed"/>
+                    </style>
+                  </object>
+                </child>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="GtkInscription" id="overview">
+            <property name="margin-start">8</property>
+            <property name="min-lines">3</property>
+            <property name="tooltip-text" bind-source="overview" bind-property="text" bind-flags="sync-create"/>
+            <property name="text-overflow">ellipsize-end</property>
+            <property name="attributes">
+              0 4294967295 scale 0.9
+            </property>
+            <style>
+              <class name="dimmed"/>
+            </style>
+          </object>
+        </child>
+      </object>
+    </child>
+  </template>
+</interface>

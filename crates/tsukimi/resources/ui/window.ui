@@ -1,0 +1,502 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+  <menu id="main-menu">
+    <section>
+      <item>
+        <attribute name="custom">theme-switcher</attribute>
+      </item>
+    </section>
+    <section>
+      <item>
+        <attribute name="label" translatable="yes">Sign out</attribute>
+        <attribute name="action">win.relogin</attribute>
+      </item>
+    </section>
+    <section>
+      <item>
+        <attribute name="label" translatable="yes">Fullscreen</attribute>
+        <attribute name="action">win.toggle-fullscreen</attribute>
+      </item>
+      <item>
+        <attribute name="label" translatable="yes">Search</attribute>
+        <attribute name="action">win.search</attribute>
+      </item>
+      <item>
+        <attribute name="label" translatable="yes">Preferences</attribute>
+        <attribute name="action">setting.account</attribute>
+      </item>
+    </section>
+    <section>
+      <item>
+        <attribute name="label" translatable="yes">About</attribute>
+        <attribute name="action">win.about</attribute>
+      </item>
+      <item>
+        <attribute name="label" translatable="yes">_Keyboard shortcuts</attribute>
+        <attribute name="action">win.show-help-overlay</attribute>
+        <attribute name="accel">F1</attribute>
+      </item>
+    </section>
+  </menu>
+  <menu id="sel-menu">
+    <section>
+      <item>
+        <attribute name="label" translatable="yes">Add server</attribute>
+        <attribute name="action">win.add-server</attribute>
+      </item>
+    </section>
+    <section>
+      <item>
+        <attribute name="label" translatable="yes">Fullscreen</attribute>
+        <attribute name="action">win.toggle-fullscreen</attribute>
+      </item>
+      <item>
+        <attribute name="label" translatable="yes">Preferences</attribute>
+        <attribute name="action">setting.account</attribute>
+      </item>
+    </section>
+    <section>
+      <item>
+        <attribute name="label" translatable="yes">About</attribute>
+        <attribute name="action">win.about</attribute>
+      </item>
+      <item>
+        <attribute name="label" translatable="yes">_Keyboard shortcuts</attribute>
+        <attribute name="action">win.show-help-overlay</attribute>
+        <attribute name="accel">F1</attribute>
+      </item>
+    </section>
+  </menu>
+  <template class="AppWindow" parent="AdwApplicationWindow">
+    <property name="title">Tsukimi</property>
+    <property name="width-request">500</property>
+    <property name="height-request">350</property>
+    <property name="icon-name">moe.tsuna.tsukimi</property>
+    <child>
+      <object class="GtkEventControllerKey">
+        <property name="propagation-phase">capture</property>
+        <signal name="key-pressed" handler="key_pressed_cb" swapped="yes"/>
+        <signal name="key-released" handler="key_released_cb" swapped="yes"/>
+      </object>
+    </child>
+    <child>
+      <object class="AdwBreakpoint" id="sidebar_breakpoint">
+        <condition>max-width: 500sp</condition>
+        <setter object="mpv_view" property="show-sidebar">False</setter>
+      </object>
+    </child>
+    <property name="content">
+      <object class="GtkOverlay">
+        <child type="overlay">
+          <object class="MediaViewer" id="media_viewer">
+            <property name="visible">False</property>
+          </object>
+        </child>
+        <child>
+          <object class="GtkOverlay">
+            <child type="overlay">
+              <object class="AdwToastOverlay" id="toast">
+                <child>
+                  <object class="GtkStack" id="stack">
+                    <property name="transition-type">crossfade</property>
+                    <property name="transition-duration">200</property>
+                    <child>
+                      <object class="GtkStackPage">
+                        <property name="name">placeholder</property>
+                        <property name="child">
+                          <object class="GtkBox">
+                            <property name="orientation">vertical</property>
+                            <child>
+                              <object class="AdwHeaderBar">
+                                <child type="end">
+                                  <object class="GtkMenuButton">
+                                    <property name="icon-name">open-menu-symbolic</property>
+                                    <property name="menu-model">sel-menu</property>
+                                  </object>
+                                </child>
+                                <style>
+                                  <class name="flat"/>
+                                </style>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkStack" id="login_stack">
+                                <property name="transition-type">crossfade</property>
+                                <child>
+                                  <object class="GtkStackPage">
+                                    <property name="name">servers</property>
+                                    <property name="child">
+                                      <object class="GtkScrolledWindow">
+                                        <property name="hexpand">false</property>
+                                        <property name="hscrollbar-policy">never</property>
+                                        <child>
+                                          <object class="AdwClamp">
+                                            <property name="margin-top">12</property>
+                                            <property name="margin-bottom">12</property>
+                                            <property name="vexpand">True</property>
+                                            <property name="tightening-threshold">200</property>
+                                            <child>
+                                              <object class="GtkListBox" id="serversbox">
+                                                <property name="halign">fill</property>
+                                                <property name="valign">start</property>
+                                                <property name="selection-mode">none</property>
+                                                <style>
+                                                  <class name="logo"/>
+                                                  <class name="boxed-list"/>
+                                                </style>
+                                              </object>
+                                            </child>
+                                          </object>
+                                        </child>
+                                      </object>
+                                    </property>
+                                  </object>
+                                </child>
+                                <child>
+                                  <object class="GtkStackPage">
+                                    <property name="name">no-server</property>
+                                    <property name="child">
+                                      <object class="AdwStatusPage">
+                                        <property name="valign">center</property>
+                                        <property name="vexpand">True</property>
+                                        <property name="icon-name">network-server-symbolic</property>
+                                        <property name="title" translatable="yes">No Server</property>
+                                        <property name="child">
+                                          <object class="GtkButton" id="add_server">
+                                            <property name="label" translatable="yes">Add Server</property>
+                                            <property name="halign">center</property>
+                                            <property name="valign">center</property>
+                                            <signal name="clicked" handler="on_add_server" swapped="yes"/>
+                                            <style>
+                                              <class name="suggested-action"/>
+                                              <class name="pill"/>
+                                            </style>
+                                          </object>
+                                        </property>
+                                      </object>
+                                    </property>
+                                  </object>
+                                </child>
+                              </object>
+                            </child>
+                          </object>
+                        </property>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkStackPage">
+                        <property name="name">main</property>
+                        <property name="child">
+                          <object class="AdwOverlaySplitView" id="split_view">
+                            <property name="min-sidebar-width">200</property>
+                            <property name="max-sidebar-width">400</property>
+                            <property name="sidebar-width-fraction">0.13</property>
+                            <property name="sidebar">
+                              <object class="AdwNavigationPage">
+                                <property name="title">Tsukimi</property>
+                                <property name="child">
+                                  <object class="AdwToolbarView">
+                                    <child type="top">
+                                      <object class="AdwHeaderBar">
+                                        <property name="show-start-title-buttons">false</property>
+                                        <child type="start">
+                                          <object class="GtkToggleButton" id="backbutton">
+                                            <property name="icon-name">system-log-out-symbolic</property>
+                                            <property name="tooltip-text" translatable="yes">Log Out</property>
+                                            <property name="action-name">win.relogin</property>
+                                          </object>
+                                        </child>
+                                      </object>
+                                    </child>
+                                    <child type="bottom">
+                                      <object class="AdwActionRow" id="namerow">
+                                        <property name="halign">fill</property>
+                                        <property name="title-lines">1</property>
+                                        <property name="subtitle-lines">1</property>
+                                        <child type="prefix">
+                                          <object class="AdwAvatar" id="avatar">
+                                            <property name="size">30</property>
+                                            <property name="margin-start">12</property>
+                                            <property name="halign">start</property>
+                                            <child>
+                                              <object class="GtkGestureClick">
+                                                <property name="button">2</property>
+                                                <signal name="released" handler="avatar_pressed_cb" swapped="true"/>
+                                              </object>
+                                            </child>
+                                          </object>
+                                        </child>
+                                        <child type="suffix">
+                                          <object class="GtkToggleButton">
+                                            <property name="valign">center</property>
+                                            <property name="icon-name">applications-system-symbolic</property>
+                                            <property name="action-name">setting.account</property>
+                                            <style>
+                                              <class name="flat"/>
+                                            </style>
+                                          </object>
+                                        </child>
+                                      </object>
+                                    </child>
+                                    <property name="content">
+                                      <object class="AdwSidebar" id="selectlist">
+                                        <signal name="activated" handler="on_sidebar_activated" swapped="yes"/>
+                                        <child>
+                                          <object class="AdwSidebarSection">
+                                            <property name="title" translatable="yes">Contents</property>
+                                            <child>
+                                              <object class="AdwSidebarItem">
+                                                <property name="title" translatable="yes">Home</property>
+                                                <property name="icon-name">go-home-symbolic</property>
+                                              </object>
+                                            </child>
+                                            <child>
+                                              <object class="AdwSidebarItem">
+                                                <property name="title" translatable="yes">Liked</property>
+                                                <property name="icon-name">emote-love-symbolic</property>
+                                              </object>
+                                            </child>
+                                            <child>
+                                              <object class="AdwSidebarItem">
+                                                <property name="title" translatable="yes">Search</property>
+                                                <property name="icon-name">system-search-symbolic</property>
+                                              </object>
+                                            </child>
+                                          </object>
+                                        </child>
+                                        <child>
+                                          <object class="AdwSidebarSection" id="servers_section">
+                                            <property name="title" translatable="yes">Servers</property>
+                                          </object>
+                                        </child>
+                                      </object>
+                                    </property>
+                                  </object>
+                                </property>
+                              </object>
+                            </property>
+                            <property name="content">
+                              <object class="AdwNavigationPage" id="navipage">
+                                <property name="title" translatable="yes"/>
+                                <property name="child">
+                                  <object class="AdwToolbarView" id="main_toolbar_view">
+                                    <property name="extend-content-to-bottom-edge">True</property>
+                                    <child type="top">
+                                      <object class="AdwHeaderBar">
+                                        <property name="show-back-button">False</property>
+                                        <child type="start">
+                                          <object class="GtkToggleButton" id="sidebar">
+                                            <property name="icon-name">sidebar-show-symbolic</property>
+                                            <property name="action-name">win.sidebar</property>
+                                          </object>
+                                        </child>
+                                        <child type="start">
+                                          <object class="GtkButton" id="popbutton">
+                                            <property name="icon-name">go-previous-symbolic</property>
+                                            <property name="visible">False</property>
+                                            <signal name="clicked" handler="on_pop" swapped="yes"/>
+                                          </object>
+                                        </child>
+                                        <child type="end">
+                                          <object class="GtkMenuButton">
+                                            <property name="icon-name">open-menu-symbolic</property>
+                                            <property name="popover">
+                                              <object class="GtkPopoverMenu">
+                                                <property name="menu-model">main-menu</property>
+                                                <child type="theme-switcher">
+                                                  <object class="ThemeSwitcher"/>
+                                                </child>
+                                              </object>
+                                            </property>
+                                          </object>
+                                        </child>
+                                      </object>
+                                    </child>
+                                    <child type="bottom">
+                                      <object class="PlayerToolbarBox" id="player_toolbar_box">
+                                        <style>
+                                          <class name="music-player"/>
+                                        </style>
+                                      </object>
+                                    </child>
+                                    <property name="content">
+                                      <object class="GtkOverlay">
+                                        <child type="overlay">
+                                          <object class="GtkProgressBar" id="progressbar">
+                                            <property name="hexpand">True</property>
+                                            <property name="valign">start</property>
+                                            <style>
+                                              <class name="osd"/>
+                                            </style>
+                                          </object>
+                                        </child>
+                                        <child>
+                                          <object class="AdwNavigationView" id="mainview">
+                                            <style>
+                                              <class name="player-toolbar-scroll-area"/>
+                                            </style>
+                                            <child>
+                                              <object class="AdwNavigationPage" id="mainpage">
+                                                <property name="tag">mainpage</property>
+                                                <property name="title">Tsukimi</property>
+                                                <child>
+                                                  <object class="GtkStack" id="insidestack">
+                                                    <property name="hexpand">True</property>
+                                                    <property name="transition-type">crossfade</property>
+                                                    <property name="transition-duration">100</property>
+                                                    <child>
+                                                      <object class="GtkStackPage">
+                                                        <property name="name">homepage</property>
+                                                        <property name="child">
+                                                          <object class="AdwBin" id="homepage"/>
+                                                        </property>
+                                                      </object>
+                                                    </child>
+                                                    <child>
+                                                      <object class="GtkStackPage">
+                                                        <property name="name">likedpage</property>
+                                                        <property name="child">
+                                                          <object class="AdwBin" id="likedpage"/>
+                                                        </property>
+                                                      </object>
+                                                    </child>
+                                                    <child>
+                                                      <object class="GtkStackPage">
+                                                        <property name="name">searchpage</property>
+                                                        <property name="child">
+                                                          <object class="AdwBin" id="searchpage"/>
+                                                        </property>
+                                                      </object>
+                                                    </child>
+                                                  </object>
+                                                </child>
+                                              </object>
+                                            </child>
+                                          </object>
+                                        </child>
+                                      </object>
+                                    </property>
+                                  </object>
+                                </property>
+                              </object>
+                            </property>
+                          </object>
+                        </property>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkStackPage" id="mpvpage">
+                        <property name="name">mpv</property>
+                        <property name="child">
+                          <object class="AdwOverlaySplitView" id="mpv_view">
+                            <property name="collapsed">False</property>
+                            <property name="show-sidebar">False</property>
+                            <property name="sidebar-position">end</property>
+                            <property name="sidebar">
+                              <object class="AdwNavigationPage">
+                                <style>
+                                  <class name="osd"/>
+                                </style>
+                                <property name="title" translatable="yes">Playlist</property>
+                                <property name="child">
+                                  <object class="AdwToolbarView">
+                                    <child type="top">
+                                      <object class="AdwHeaderBar">
+                                        <property name="show-end-title-buttons">false</property>
+                                        <property name="title-widget">
+                                          <object class="AdwViewSwitcher">
+                                            <property name="stack">mpv_view_stack</property>
+                                          </object>
+                                        </property>
+                                        <style>
+                                          <class name="flat"/>
+                                        </style>
+                                      </object>
+                                    </child>
+                                    <property name="content">
+                                      <object class="AdwViewStack" id="mpv_view_stack">
+                                        <child>
+                                          <object class="AdwViewStackPage">
+                                            <property name="name">playlist</property>
+                                            <property name="icon-name">view-list-symbolic</property>
+                                            <property name="title" translatable="yes">Playlist</property>
+                                            <property name="child">
+                                              <object class="GtkScrolledWindow">
+                                                <property name="hscrollbar-policy">never</property>
+                                                <property name="valign">fill</property>
+                                                <property name="margin-bottom">3</property>
+                                                <child>
+                                                  <object class="GtkListView" id="mpv_playlist">
+                                                    <property name="orientation">vertical</property>
+                                                    <property name="single-click-activate">True</property>
+                                                    <signal name="activate" handler="on_playlist_item_activated" swapped="yes"/>
+                                                    <style>
+                                                      <class name="vertical-listview"/>
+                                                      <class name="osd"/>
+                                                    </style>
+                                                  </object>
+                                                </child>
+                                                <style>
+                                                  <class name="undershoot-start"/>
+                                                  <class name="undershoot-end"/>
+                                                </style>
+                                              </object>
+                                            </property>
+                                          </object>
+                                        </child>
+                                        <child>
+                                          <object class="AdwViewStackPage">
+                                            <property name="name">control-bar</property>
+                                            <property name="icon-name">settings-symbolic</property>
+                                            <property name="title" translatable="yes">Advanced Settings</property>
+                                            <property name="child">
+                                              <object class="MPVControlSidebar" id="mpv_control_sidebar"/>
+                                            </property>
+                                          </object>
+                                        </child>
+                                      </object>
+                                    </property>
+                                    <style>
+                                      <class name="osd"/>
+                                    </style>
+                                  </object>
+                                </property>
+                              </object>
+                            </property>
+                            <property name="content">
+                              <object class="MPVPage" id="mpvnav">
+                              </object>
+                            </property>
+                          </object>
+                        </property>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+              </object>
+            </child>
+            <child>
+              <object class="GtkStack" id="backgroundstack">
+                <property name="transition-type">crossfade</property>
+                <property name="transition-duration">1000</property>
+                <child>
+                  <object class="GtkPicture" id="rootpic">
+                    <property name="halign">fill</property>
+                    <property name="valign">fill</property>
+                    <property name="content-fit">cover</property>
+                    <property name="hexpand">true</property>
+                    <property name="vexpand">true</property>
+                    <property name="opacity">0.15</property>
+                  </object>
+                </child>
+              </object>
+            </child>
+            <style>
+              <class name="home-carousel"/>
+            </style>
+          </object>
+        </child>
+      </object>
+    </property>
+  </template>
+</interface>

@@ -1,0 +1,181 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+  <menu id="search-menu">
+    <item>
+      <attribute name="custom">search-menu-panel</attribute>
+    </item>
+  </menu>
+  <template parent="AdwNavigationPage" class="SearchPage">
+    <property name="title">Tsukimi</property>
+    <child>
+      <object class="AdwToolbarView">
+        <child>
+          <object class="GtkBox">
+            <property name="orientation">vertical</property>
+            <property name="spacing">18</property>
+            <child>
+              <object class="GtkBox">
+                <property name="orientation">horizontal</property>
+                <property name="margin-start">12</property>
+                <property name="margin-end">12</property>
+                <child>
+                  <object class="GtkSearchEntry" id="searchentry">
+                    <property name="placeholder-text" translatable="yes">Search</property>
+                    <property name="hexpand">True</property>
+                    <signal name="activate" handler="on_search_activate" swapped="yes"/>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkButton" id="filter">
+                    <property name="icon-name">funnel-outline-symbolic</property>
+                    <property name="tooltip-text" translatable="yes">Filter Panel</property>
+                    <property name="valign">center</property>
+                    <signal name="clicked" handler="filter_panel_cb" swapped="yes"/>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkMenuButton">
+                    <property name="icon-name">view-more-symbolic</property>
+                    <property name="popover">
+                      <object class="GtkPopoverMenu" id="view-popover">
+                        <property name="menu-model">search-menu</property>
+                        <property name="width-request">250</property>
+                        <child type="search-menu-panel">
+                          <object class="GtkListBox">
+                            <property name="selection-mode">none</property>
+                            <child>
+                              <object class="AdwSwitchRow" id="series">
+                                <property name="title" translatable="yes">Series</property>
+                                <property name="active">True</property>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="AdwSwitchRow" id="movie">
+                                <property name="title" translatable="yes">Movie</property>
+                                <property name="active">True</property>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="AdwSwitchRow" id="boxset">
+                                <property name="title" translatable="yes">BoxSet</property>
+                                <property name="active">True</property>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="AdwSwitchRow" id="person">
+                                <property name="title" translatable="yes">Person</property>
+                                <property name="active">True</property>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="AdwSwitchRow" id="music">
+                                <property name="title" translatable="yes">Music Album</property>
+                                <property name="active">True</property>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="AdwSwitchRow" id="audio">
+                                <property name="title" translatable="yes">Audio</property>
+                                <property name="active">False</property>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="AdwSwitchRow" id="video">
+                                <property name="title" translatable="yes">Video</property>
+                                <property name="active">False</property>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="AdwSwitchRow" id="episode">
+                                <property name="title" translatable="yes">Episode</property>
+                                <property name="active">False</property>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
+                      </object>
+                    </property>
+                  </object>
+                </child>
+                <style>
+                  <class name="linked"/>
+                </style>
+              </object>
+            </child>
+            <child>
+              <object class="GtkStack" id="stack">
+                <property name="transition-type">crossfade</property>
+                <property name="vexpand">True</property>
+                <child>
+                  <object class="GtkStackPage">
+                    <property name="name">loading</property>
+                    <property name="title">Loading</property>
+                    <property name="child">
+                      <object class="AdwSpinner">
+                        <property name="visible">True</property>
+                        <property name="halign">center</property>
+                        <property name="valign">center</property>
+                        <property name="width-request">48</property>
+                        <property name="height-request">48</property>
+                      </object>
+                    </property>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkStackPage">
+                    <property name="name">recommend</property>
+                    <property name="title">Recommend</property>
+                    <property name="child">
+                      <object class="GtkScrolledWindow" id="recommendwindow">
+                        <property name="hscrollbar-policy">never</property>
+                        <property name="visible">True</property>
+                        <property name="vexpand">True</property>
+                        <property name="hexpand">True</property>
+                        <child>
+                          <object class="AdwClamp">
+                            <child>
+                              <object class="GtkListBox" id="recommend_group">
+                                <style>
+                                  <class name="boxed-list"/>
+                                </style>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
+                      </object>
+                    </property>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkStackPage">
+                    <property name="name">result</property>
+                    <property name="title">Result</property>
+                    <property name="child">
+                      <object class="TuViewScrolled" id="searchscrolled">
+
+                      </object>
+                    </property>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkStackPage">
+                    <property name="name">fallback</property>
+                    <property name="title">Fallback</property>
+                    <property name="child">
+                      <object class="AdwStatusPage" id="status">
+                        <property name="title" translatable="yes">Nothing Here or No type selected</property>
+                        <property name="description" translatable="yes">Maybe you should try using different search terms</property>
+                        <property name="vexpand">True</property>
+                        <property name="icon-name">document-open-symbolic</property>
+                      </object>
+                    </property>
+                  </object>
+                </child>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+    </child>
+  </template>
+</interface>

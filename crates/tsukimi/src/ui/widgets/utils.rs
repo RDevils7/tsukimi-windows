@@ -1,0 +1,148 @@
+use gtk::{
+    SignalListItemFactory,
+    prelude::*,
+};
+
+use super::{
+    filter_panel::FilterPanelDialog,
+    identify::IdentifyDialog,
+    image_dialog::ImageDialog,
+    tu_item::CardOptions,
+    tu_list_item::TuListItem,
+    tu_overview_item::{
+        TuOverviewItem,
+        imp::ViewGroup,
+    },
+};
+
+use crate::ui::provider::tu_object::TuObject;
+
+pub trait TuItemBuildExt {
+    fn tu_item(&self, options: CardOptions) -> &Self;
+    fn tu_overview_item(&self, view_group: ViewGroup, options: CardOptions) -> &Self;
+}
+
+impl TuItemBuildExt for SignalListItemFactory {
+    fn tu_item(&self, options: CardOptions) -> &Self {
+        self.connect_setup(move |_, item| {
+            let tu_item = TuListItem::default();
+            tu_item.set_card_options(options);
+
+            let list_item = item
+                .downcast_ref::<gtk::ListItem>()
+                .expect("Needs to be ListItem");
+            list_item.set_child(Some(&tu_item));
+            list_item
+                .property_expression("item")
+                .chain_property::<TuObject>("item")
+                .bind(&tu_item, "item", gtk::Widget::NONE);
+        });
+
+        self.connect_unbind(|_, item| {
+            let list_item = item
+                .downcast_ref::<gtk::ListItem>()
+                .expect("Needs to be ListItem");
+
+            if let Some(tu_item) = list_item.child().and_downcast::<TuListItem>() {
+                tu_item.unbind_item();
+            }
+        });
+
+        self
+    }
+
+    fn tu_overview_item(&self, view_group: ViewGroup, options: CardOptions) -> &Self {
+        self.connect_setup(move |_, item| {
+            let tu_item = TuOverviewItem::default();
+            tu_item.set_view_group(view_group);
+            tu_item.set_card_options(options);
+            let list_item = item
+                .downcast_ref::<gtk::ListItem>()
+                .expect("Needs to be ListItem");
+            list_item.set_child(Some(&tu_item));
+            list_item
+                .property_expression("item")
+                .chain_property::<TuObject>("item")
+                .bind(&tu_item, "item", gtk::Widget::NONE);
+        });
+        self
+    }
+}
+
+pub const TU_ITEM_POST_SIZE: (i32, i32) = (184, 286);
+pub const TU_ITEM_VIDEO_SIZE: (i32, i32) = (275, 155);
+pub const TU_ITEM_SQUARE_SIZE: (i32, i32) = (209, 209);
+pub const TU_ITEM_BANNER_SIZE: (i32, i32) = (413, 77);
+
+pub trait GlobalToast {
+    fn toast(&self, message: impl Into<String>);
+
+    fn add_toast_inner(&self, toast: adw::Toast);
+}
+
+impl<T> GlobalToast for T
+where
+    T: IsA<gtk::Widget>,
+{
+    fn toast(&self, message: impl Into<String>) {
+        let toast = adw::Toast::builder()
+            .timeout(2)
+            .use_markup(false)
+            .title(message.into())
+            .build();
+        self.add_toast_inner(toast);
+    }
+
+    fn add_toast_inner(&self, toast: adw::Toast) {
+        if let Some(dialog) = self
+            .ancestor(adw::PreferencesDialog::static_type())
+            .and_downcast::<adw::PreferencesDialog>()
+        {
+            use adw::prelude::PreferencesDialogExt;
+            dialog.add_toast(toast);
+        } else if let Some(overlay) = self
+            .ancestor(adw::ToastOverlay::static_type())
+            .and_downcast::<adw::ToastOverlay>()
+        {
+            overlay.add_toast(toast);
+        } else if let Some(dialog) = self
+            .ancestor(FilterPanelDialog::static_type())
+            .and_downcast::<FilterPanelDialog>()
+        {
+            dialog.add_toast(toast);
+        } else if let Some(dialog) = self
+            .ancestor(IdentifyDialog::static_type())
+            .and_downcast::<IdentifyDialog>()
+        {
+            dialog.add_toast(toast);
+        } else if let Some(dialog) = self
+            .ancestor(ImageDialog::static_type())
+            .and_downcast::<ImageDialog>()
+        {
+            dialog.add_toast(toast);
+        } else if let Some(root) = self.root() {
+            #[allow(deprecated)]
+            if let Some(window) = root.downcast_ref::<adw::PreferencesWindow>() {
+                use adw::prelude::PreferencesWindowExt;
+                window.add_toast(toast);
+            } else if let Some(window) = root.downcast_ref::<crate::Window>() {
+                window.add_toast(toast);
+            } else {
+                panic!("Trying to display a toast when the parent doesn't support it");
+            }
+        }
+    }
+}
+
+pub fn run_time_ticks_to_label(run_time_ticks: u64) -> String {
+    let duration = chrono::Duration::seconds((run_time_ticks / 10000000) as i64);
+    let hours = duration.num_hours();
+    let minutes = duration.num_minutes() % 60;
+    let seconds = duration.num_seconds() % 60;
+
+    if hours > 0 {
+        format!("{hours}:{minutes:02}:{seconds:02}")
+    } else {
+        format!("{minutes}:{seconds:02}")
+    }
+}

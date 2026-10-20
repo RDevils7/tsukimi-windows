@@ -1,0 +1,104 @@
+{
+  "DeviceProfile": {
+    "SubtitleProfiles": [
+      {
+        "Format": "ass",
+        "Method": "Embed"
+      },
+      {
+        "Format": "ass",
+        "Method": "External"
+      },
+      {
+        "Format": "dvbsub",
+        "Method": "Embed"
+      },
+      {
+        "Format": "dvdsub",
+        "Method": "Embed"
+      },
+      {
+        "Format": "pgs",
+        "Method": "Embed"
+      },
+      {
+        "Format": "pgssub",
+        "Method": "Embed"
+      },
+      {
+        "Format": "smi",
+        "Method": "Embed"
+      },
+      {
+        "Format": "smi",
+        "Method": "External"
+      },
+      {
+        "Format": "srt",
+        "Method": "Embed"
+      },
+      {
+        "Format": "srt",
+        "Method": "External"
+      },
+      {
+        "Format": "ssa",
+        "Method": "Embed"
+      },
+      {
+        "Format": "ssa",
+        "Method": "External"
+      },
+      {
+        "Format": "sub",
+        "Method": "Embed"
+      },
+      {
+        "Format": "sub",
+        "Method": "External"
+      },
+      {
+        "Format": "subrip",
+        "Method": "Embed"
+      },
+      {
+        "Format": "subrip",
+        "Method": "External"
+      },
+      {
+        "Format": "vobsub",
+        "Method": "Embed"
+      },
+      {
+        "Format": "vtt",
+        "Method": "External"
+      }
+    ],
+    "CodecProfiles": [],
+    "MaxStreamingBitrate": 2147483647,
+    "DirectPlayProfiles": [
+      {
+        "Type": "Audio"
+      },
+      {
+        "Type": "Video"
+      }
+    ],
+    "TranscodingProfiles": [
+      {
+        "Container": "ts",
+        "AudioCodec": "aac,ac3,eac3,mp3",
+        "VideoCodec": "h264,hevc,vp9,av1",
+        "BreakOnNonKeyFrames": true,
+        "Type": "Video",
+        "Protocol": "hls",
+        "Context": "Streaming",
+        "MinSegments": 1
+      }
+    ],
+    "ResponseProfiles": [],
+    "ContainerProfiles": [],
+    "MusicStreamingTranscodingBitrate": 120000000,
+    "MaxStaticBitrate": 2147483647
+  }
+}

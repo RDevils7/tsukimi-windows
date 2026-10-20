@@ -1,0 +1,62 @@
+[package]
+name = "mutsumi"
+version = "0.6.0"
+edition = "2024"
+license = "MIT"
+description = "A GTK4 MPV embedder (wl-proxy dmabuf on Linux, mpv render API elsewhere)"
+
+[features]
+profiling = ["dep:plotly", "dep:serde", "plotly/plotly_embed_js"]
+
+[dependencies]
+flume.workspace = true
+libloading.workspace = true
+libmpv2.workspace = true
+once_cell.workspace = true
+plotly = { workspace = true, optional = true }
+gtk = { workspace = true, features = ["v4_22"] }
+adw = { workspace = true, features = ["v1_9"] }
+tracing.workspace = true
+atomic-wait.workspace = true
+serde = { workspace = true, features = ["derive"], optional = true }
+serde_json.workspace = true
+tokio = { workspace = true, features = ["rt", "sync", "net", "macros"] }
+ash.workspace = true
+glib.workspace = true
+tracing-subscriber.workspace = true
+glow.workspace = true
+mutsumi-prelude.workspace = true
+danmakw.workspace = true
+libmpv2-sys.workspace = true
+quick-xml = { workspace = true, features = ["serialize"] }
+thiserror.workspace = true
+
+[target.'cfg(target_os = "linux")'.dependencies]
+libc.workspace = true
+gdk-x11 = { workspace = true, features = [
+  "v4_10",
+  "xlib",
+] }
+gdk-wayland = { workspace = true, features = [
+  "v4_10",
+  "wayland_crate",
+] }
+wl-proxy = { workspace = true, features = [
+  "protocol-drm",
+  "protocol-linux_dmabuf_v1",
+  "protocol-xdg_shell",
+  "protocol-viewporter",
+  "protocol-fractional_scale_v1",
+] }
+
+[[example]]
+name = "player"
+path = "example/player.rs"
+
+[[example]]
+name = "mpv"
+path = "example/mpv.rs"
+
+[[example]]
+name = "danmakw"
+path = "example/danmakw.rs"

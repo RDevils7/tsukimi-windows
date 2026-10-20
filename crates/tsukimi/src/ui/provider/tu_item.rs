@@ -1,0 +1,873 @@
+use std::cell::{
+    Cell,
+    RefCell,
+};
+
+use adw::prelude::*;
+use dandanapi_client::{
+    SearchAnimeDetails,
+    SearchEpisodeDetails,
+    SearchEpisodesAnime,
+};
+use gettextrs::gettext;
+use glib::DateTime;
+use gtk::{
+    gio,
+    glib::{
+        self,
+        subclass::prelude::*,
+    },
+};
+
+#[allow(dead_code)] //FIXME: refactor with this
+pub mod item_type {
+    pub const MOVIE: &str = "Movie";
+    pub const VIDEO: &str = "Video";
+    pub const MUSIC_VIDEO: &str = "MusicVideo";
+    pub const ADULT_VIDEO: &str = "AdultVideo";
+    pub const CHANNEL: &str = "Channel";
+    pub const TV_CHANNEL: &str = "TvChannel";
+    pub const COLLECTION_FOLDER: &str = "CollectionFolder";
+    pub const USER_VIEW: &str = "UserView";
+    pub const SERIES: &str = "Series";
+    pub const BOX_SET: &str = "BoxSet";
+    pub const TAG: &str = "Tag";
+    pub const GENRE: &str = "Genre";
+    pub const MUSIC_GENRE: &str = "MusicGenre";
+    pub const EPISODE: &str = "Episode";
+    pub const VIEWS: &str = "Views";
+    pub const MUSIC_ALBUM: &str = "MusicAlbum";
+    pub const ACTOR: &str = "Actor";
+    pub const PERSON: &str = "Person";
+    pub const DIRECTOR: &str = "Director";
+    pub const WRITER: &str = "Writer";
+    pub const PRODUCER: &str = "Producer";
+    pub const GUEST_STAR: &str = "GuestStar";
+    pub const MUSIC_ARTIST: &str = "MusicArtist";
+    pub const AUDIO: &str = "Audio";
+    pub const PLAYLIST: &str = "Playlist";
+    pub const FOLDER: &str = "Folder";
+    pub const SEASON: &str = "Season";
+    pub const DANMAKU_ANIME: &str = "DanmakuAnime";
+    pub const DANMAKU_EPISODE: &str = "DanmakuEpisode";
+}
+
+pub mod collection_type {
+    pub const MOVIES: &str = "movies";
+    pub const TV_SHOWS: &str = "tvshows";
+    pub const MUSIC: &str = "music";
+    pub const HOME_VIDEOS: &str = "homevideos";
+    pub const BOOKS: &str = "books";
+    pub const LIVE_TV: &str = "livetv";
+}
+
+pub mod image_type {
+    pub const PRIMARY: &str = "Primary";
+    pub const BACKDROP: &str = "Backdrop";
+    pub const ART: &str = "Art";
+    pub const THUMB: &str = "Thumb";
+    pub const LOGO: &str = "Logo";
+    pub const BANNER: &str = "Banner";
+    pub const DISC: &str = "Disc";
+}
+
+pub use item_type::*;
+
+use crate::{
+    bing_song_model,
+    client::{
+        error::UserFacingError,
+        jellyfin_client::JELLYFIN_CLIENT,
+        structs::{
+            SimpleListItem,
+            SongWidgetView,
+            UserData,
+        },
+    },
+    ui::{
+        GlobalToast,
+        SETTINGS,
+        mpv::danmaku_search_dialog::DanmakuSearchDialog,
+        provider::{
+            core_song::CoreSong,
+            tu_item::item_type::{
+                EPISODE,
+                SERIES,
+                TV_CHANNEL,
+            },
+        },
+        widgets::{
+            item::ItemPage,
+            list::ListPage,
+            music_album::AlbumPage,
+            other::OtherPage,
+            single_grid::{
+                SingleGrid,
+                imp::ListType,
+            },
+            song_widget::SongWidget,
+            window::Window,
+        },
+    },
+    utils::{
+        CacheEvent,
+        CachePolicy,
+        fetch_with_cache,
+        spawn,
+        spawn_tokio,
+    },
+};
+
+#[derive(Default, Clone)]
+struct AlbumArtist {
+    name: String,
+    id: String,
+}
+
+pub mod imp {
+    use glib::DateTime;
+    use gtk::glib::Properties;
+
+    use super::*;
+
+    #[derive(Properties, Default)]
+    #[properties(wrapper_type = super::TuItem)]
+    pub struct TuItem {
+        #[property(get, set)]
+        id: RefCell<String>,
+        #[property(get, set)]
+        name: RefCell<String>,
+        #[property(get, set)]
+        index_number: Cell<u32>,
+        #[property(get, set)]
+        parent_index_number: Cell<u32>,
+        #[property(get, set, nullable)]
+        series_name: RefCell<Option<String>>,
+        #[property(get, set, nullable)]
+        season_name: RefCell<Option<String>>,
+        #[property(get, set, nullable)]
+        series_id: RefCell<Option<String>>,
+        #[property(get, set, nullable)]
+        season_id: RefCell<Option<String>>,
+        #[property(get, set)]
+        played_percentage: Cell<f64>,
+        #[property(get, set)]
+        played: Cell<bool>,
+        #[property(get, set)]
+        unplayed_item_count: Cell<u32>,
+        #[property(get, set)]
+        is_favorite: Cell<bool>,
+        #[property(get, set)]
+        is_resume: Cell<bool>,
+        #[property(get, set)]
+        item_type: RefCell<String>,
+        #[property(get, set)]
+        production_year: Cell<u32>,
+        #[property(get, set, nullable)]
+        parent_thumb_item_id: RefCell<Option<String>>,
+        #[property(get, set, nullable)]
+        parent_thumb_image_tag: RefCell<Option<String>>,
+        #[property(get, set, nullable)]
+        parent_backdrop_item_id: RefCell<Option<String>>,
+        #[property(get, set, nullable)]
+        parent_backdrop_image_tag: RefCell<Option<String>>,
+        #[property(get, set)]
+        poster: RefCell<Option<String>>,
+        #[property(get, set, nullable)]
+        image_url: RefCell<Option<String>>,
+        #[property(get, set, nullable)]
+        image_tags: RefCell<Option<crate::ui::provider::image_tags::ImageTags>>,
+        #[property(get, set, nullable)]
+        role: RefCell<Option<String>>,
+        #[property(get, set, nullable)]
+        artists: RefCell<Option<String>>,
+        #[property(get, set, nullable)]
+        album_id: RefCell<Option<String>>,
+        #[property(get, set, nullable)]
+        album_primary_image_tag: RefCell<Option<String>>,
+        #[property(get, set, nullable)]
+        rating: RefCell<Option<String>>,
+        #[property(get, set, nullable)]
+        primary_image_item_id: RefCell<Option<String>>,
+        #[property(get, set, nullable)]
+        primary_image_tag: RefCell<Option<String>>,
+        #[property(get, set, nullable)]
+        parent_primary_image_item_id: RefCell<Option<String>>,
+        #[property(get, set, nullable)]
+        parent_primary_image_tag: RefCell<Option<String>>,
+        #[property(get, set, nullable)]
+        series_primary_image_tag: RefCell<Option<String>>,
+        #[property(get, set, nullable)]
+        series_thumb_image_tag: RefCell<Option<String>>,
+        pub child_count: Cell<Option<u32>>,
+        #[property(get, set)]
+        run_time_ticks: Cell<u64>,
+        #[property(get, set, nullable)]
+        collection_type: RefCell<Option<String>>,
+        #[property(name = "albumartist-name", get, set, type = String, member = name)]
+        #[property(name = "albumartist-id", get, set, type = String, member = id)]
+        album_artist: RefCell<AlbumArtist>,
+        #[property(get, set, nullable)]
+        program_name: RefCell<Option<String>>,
+        #[property(get, set, nullable)]
+        program_start_time: RefCell<Option<DateTime>>,
+        #[property(get, set, nullable)]
+        program_end_time: RefCell<Option<DateTime>>,
+        #[property(get, set, nullable)]
+        premiere_date: RefCell<Option<DateTime>>,
+        #[property(get, set, nullable)]
+        status: RefCell<Option<String>>,
+        #[property(get, set, nullable)]
+        end_date: RefCell<Option<DateTime>>,
+        #[property(get, set, nullable)]
+        overview: RefCell<Option<String>>,
+        #[property(get, set, nullable)]
+        tagline: RefCell<Option<String>>,
+        #[property(get, set, nullable)]
+        path: RefCell<Option<String>>,
+        #[property(get, set)]
+        playback_position_ticks: Cell<u64>,
+    }
+
+    #[glib::derived_properties]
+    impl ObjectImpl for TuItem {}
+
+    #[glib::object_subclass]
+    impl ObjectSubclass for TuItem {
+        const NAME: &'static str = "TuItem";
+        type Type = super::TuItem;
+    }
+}
+
+glib::wrapper! {
+    pub struct TuItem(ObjectSubclass<imp::TuItem>);
+}
+
+impl Default for TuItem {
+    fn default() -> Self {
+        glib::Object::new()
+    }
+}
+
+impl From<SimpleListItem> for TuItem {
+    fn from(item: SimpleListItem) -> Self {
+        let tu_item: TuItem = glib::Object::new();
+        tu_item.set_id(item.id);
+        tu_item.set_name(item.name);
+        tu_item.set_item_type(item.item_type);
+        tu_item.set_production_year(item.production_year.unwrap_or_default());
+        tu_item.set_index_number(item.index_number.unwrap_or_default());
+        tu_item.set_parent_index_number(item.parent_index_number.unwrap_or_default());
+        tu_item.set_path(item.path);
+        tu_item.set_image_url(item.image_url);
+
+        if let Some(userdata) = &item.user_data {
+            tu_item.set_played(userdata.played);
+            tu_item.set_played_percentage(userdata.played_percentage.unwrap_or_default());
+            tu_item.set_unplayed_item_count(userdata.unplayed_item_count.unwrap_or_default());
+            tu_item
+                .set_playback_position_ticks(userdata.playback_position_ticks.unwrap_or_default());
+            tu_item.set_is_favorite(userdata.is_favorite.unwrap_or(false));
+        }
+        tu_item.set_image_tags(crate::ui::provider::image_tags::ImageTags::new(
+            item.image_tags,
+            item.backdrop_image_tags,
+        ));
+        tu_item.set_parent_thumb_item_id(item.parent_thumb_item_id);
+        tu_item.set_parent_thumb_image_tag(item.parent_thumb_image_tag);
+        tu_item.set_parent_backdrop_item_id(item.parent_backdrop_item_id);
+        tu_item.set_parent_backdrop_image_tag(
+            item.parent_backdrop_image_tags
+                .and_then(|tags| tags.into_iter().next()),
+        );
+        tu_item.set_series_name(item.series_name);
+        tu_item.set_season_name(item.season_name);
+
+        if let Some(album_artist) = &item.album_artists {
+            tu_item.set_albumartist_name(
+                album_artist
+                    .first()
+                    .as_ref()
+                    .map(|s| s.name.as_str())
+                    .unwrap_or_default()
+                    .to_string(),
+            );
+            tu_item.set_albumartist_id(
+                album_artist
+                    .first()
+                    .as_ref()
+                    .map(|s| s.id.as_str())
+                    .unwrap_or_default()
+                    .to_string(),
+            );
+        }
+
+        tu_item.set_role(item.role);
+        tu_item.set_artists(item.artists.map(|artists| artists.join(" , ")));
+        tu_item.set_album_id(item.album_id);
+        tu_item.set_album_primary_image_tag(item.album_primary_image_tag);
+        tu_item.set_run_time_ticks(item.run_time_ticks.unwrap_or_default());
+        tu_item.set_tagline(item.taglines.and_then(|taglines| taglines.first().cloned()));
+        tu_item.set_primary_image_item_id(item.primary_image_item_id);
+        tu_item.set_primary_image_tag(item.primary_image_tag);
+        tu_item.set_parent_primary_image_item_id(item.parent_primary_image_item_id);
+        tu_item.set_parent_primary_image_tag(item.parent_primary_image_tag);
+        tu_item.set_series_primary_image_tag(item.series_primary_image_tag);
+        tu_item.set_series_thumb_image_tag(item.series_thumb_image_tag);
+        tu_item.imp().child_count.replace(item.child_count);
+        tu_item.set_rating(item.community_rating.map(|rating| format!("{rating:.1}")));
+        tu_item.set_collection_type(item.collection_type);
+
+        if let Some(current_program) = item.current_program {
+            tu_item.set_program_name(current_program.name);
+            tu_item.set_program_start_time(current_program.start_date.as_ref().map(chrono_to_glib));
+            tu_item.set_program_end_time(current_program.end_date.as_ref().map(chrono_to_glib));
+        }
+
+        tu_item.set_premiere_date(item.premiere_date.as_ref().map(chrono_to_glib));
+        tu_item.set_series_id(item.series_id);
+        tu_item.set_status(item.status);
+        tu_item.set_end_date(item.end_date.as_ref().map(chrono_to_glib));
+        tu_item.set_overview(item.overview);
+        tu_item.set_season_id(item.season_id);
+
+        tu_item
+    }
+}
+
+impl From<SearchAnimeDetails> for SimpleListItem {
+    fn from(anime: SearchAnimeDetails) -> Self {
+        Self {
+            id: anime.anime_id.map(|id| id.to_string()).unwrap_or_default(),
+            name: anime.anime_title.unwrap_or_default(),
+            item_type: DANMAKU_ANIME.to_string(),
+            overview: anime.type_description,
+            image_url: anime.image_url,
+            ..Default::default()
+        }
+    }
+}
+
+impl From<SearchAnimeDetails> for TuItem {
+    fn from(anime: SearchAnimeDetails) -> Self {
+        Self::from_simple(SimpleListItem::from(anime))
+    }
+}
+
+impl From<SearchEpisodesAnime> for SimpleListItem {
+    fn from(anime: SearchEpisodesAnime) -> Self {
+        Self {
+            id: anime.anime_id.map(|id| id.to_string()).unwrap_or_default(),
+            name: anime.anime_title.unwrap_or_default(),
+            item_type: DANMAKU_ANIME.to_string(),
+            overview: anime.type_description,
+            ..Default::default()
+        }
+    }
+}
+
+impl From<SearchEpisodesAnime> for TuItem {
+    fn from(anime: SearchEpisodesAnime) -> Self {
+        Self::from_simple(SimpleListItem::from(anime))
+    }
+}
+
+impl From<SearchEpisodeDetails> for SimpleListItem {
+    fn from(episode: SearchEpisodeDetails) -> Self {
+        Self {
+            id: episode
+                .episode_id
+                .map(|id| id.to_string())
+                .unwrap_or_default(),
+            name: episode.episode_title.unwrap_or_default(),
+            item_type: DANMAKU_EPISODE.to_string(),
+            ..Default::default()
+        }
+    }
+}
+
+impl From<SearchEpisodeDetails> for TuItem {
+    fn from(episode: SearchEpisodeDetails) -> Self {
+        Self::from_simple(SimpleListItem::from(episode))
+    }
+}
+
+impl TuItem {
+    pub fn from_simple(item: SimpleListItem) -> Self {
+        Self::from(item)
+    }
+
+    pub fn update_user_data(&self, user_data: &Option<UserData>) {
+        let Some(userdata) = user_data else {
+            return;
+        };
+
+        self.set_played(userdata.played);
+        self.set_played_percentage(userdata.played_percentage.unwrap_or_default());
+        self.set_unplayed_item_count(userdata.unplayed_item_count.unwrap_or_default());
+        self.set_playback_position_ticks(userdata.playback_position_ticks.unwrap_or_default());
+        self.set_is_favorite(userdata.is_favorite.unwrap_or(false));
+    }
+
+    pub fn activate<T>(&self, widget: &T)
+    where
+        T: gtk::prelude::WidgetExt + glib::clone::Downgrade,
+    {
+        let Some(window) = widget.root().and_downcast::<Window>() else {
+            return;
+        };
+
+        match self.item_type().as_str() {
+            SERIES | MOVIE | VIDEO | MUSIC_VIDEO | ADULT_VIDEO => {
+                let page = ItemPage::new(self);
+                push_page_with_tag(window, page, self.id(), &self.name());
+            }
+            EPISODE => {
+                let page = ItemPage::new(self);
+                push_page_with_tag(
+                    window,
+                    page,
+                    self.id(),
+                    &self.series_name().unwrap_or_default(),
+                );
+            }
+            MUSIC_ALBUM | PLAYLIST => {
+                let page = AlbumPage::new(self.to_owned());
+                push_page_with_tag(window, page, self.id(), &self.name());
+            }
+            COLLECTION_FOLDER | USER_VIEW => {
+                let page = ListPage::new(self.to_owned());
+                push_page_with_tag(window, page, self.id(), &self.name());
+            }
+            TAG | GENRE | MUSIC_GENRE => {
+                let page = SingleGrid::new();
+                let id = self.id();
+
+                let mut parent_id = None;
+                if let Some(list_page) = widget
+                    .ancestor(ListPage::static_type())
+                    .and_downcast_ref::<ListPage>()
+                {
+                    parent_id = Some(list_page.item().id());
+                }
+
+                let parent_id_clone = parent_id.to_owned();
+
+                let list_type = self.item_type();
+                page.connect_sort_changed_tokio(move |sort_by, sort_order, filters_list| {
+                    let id = id.to_owned();
+                    let parent_id = parent_id.to_owned();
+                    let list_type = list_type.to_owned();
+                    async move {
+                        JELLYFIN_CLIENT
+                            .get_inlist(
+                                parent_id,
+                                0,
+                                &list_type,
+                                &id,
+                                &sort_order,
+                                &sort_by,
+                                &filters_list,
+                            )
+                            .await
+                    }
+                });
+                let id = self.id();
+                let list_type = self.item_type();
+                page.connect_end_edge_overshot_tokio(
+                    move |sort_by, sort_order, n_items, filters_list| {
+                        let id = id.to_owned();
+                        let parent_id = parent_id_clone.to_owned();
+                        let list_type = list_type.to_owned();
+                        async move {
+                            JELLYFIN_CLIENT
+                                .get_inlist(
+                                    parent_id,
+                                    n_items,
+                                    &list_type,
+                                    &id,
+                                    &sort_order,
+                                    &sort_by,
+                                    &filters_list,
+                                )
+                                .await
+                        }
+                    },
+                );
+                push_page_with_tag(window, page, self.id(), &self.name());
+            }
+            FOLDER => {
+                let page = SingleGrid::new();
+                page.set_list_type(ListType::Folder);
+                let id = self.id();
+                page.connect_sort_changed_tokio(move |sort_by, sort_order, filters_list| {
+                    let id = id.to_owned();
+                    async move {
+                        JELLYFIN_CLIENT
+                            .get_folder_include(&id, &sort_by, &sort_order, 0, &filters_list)
+                            .await
+                    }
+                });
+                let id = self.id();
+                page.connect_end_edge_overshot_tokio(
+                    move |sort_by, sort_order, n_items, filters_list| {
+                        let id = id.to_owned();
+                        async move {
+                            JELLYFIN_CLIENT
+                                .get_folder_include(
+                                    &id,
+                                    &sort_by,
+                                    &sort_order,
+                                    n_items,
+                                    &filters_list,
+                                )
+                                .await
+                        }
+                    },
+                );
+                push_page_with_tag(window, page, self.id(), &self.name());
+            }
+            DANMAKU_ANIME => {
+                if let Some(dialog) = widget
+                    .ancestor(DanmakuSearchDialog::static_type())
+                    .and_downcast::<DanmakuSearchDialog>()
+                {
+                    dialog.open_anime(self.to_owned());
+                }
+            }
+            DANMAKU_EPISODE => {
+                if let Some(dialog) = widget
+                    .ancestor(DanmakuSearchDialog::static_type())
+                    .and_downcast::<DanmakuSearchDialog>()
+                {
+                    dialog.apply_episode(self.to_owned());
+                }
+            }
+            _ => {
+                let page = OtherPage::new(self);
+                push_page_with_tag(window, page, self.id(), &self.name());
+            }
+        }
+    }
+
+    pub fn play_tvchannel(&self, obj: &impl IsA<gtk::Widget>) {
+        let binding = obj.root();
+        let Some(window) = binding.and_downcast_ref::<Window>() else {
+            return;
+        };
+        spawn(glib::clone!(
+            #[strong(rename_to = item)]
+            self,
+            #[weak]
+            window,
+            async move {
+                window.play_media(None, item, vec![], None, 0.0);
+            }
+        ));
+    }
+
+    pub fn play_single_audio(&self, obj: &impl IsA<gtk::Widget>) {
+        let song_widget = SongWidget::new(self.to_owned(), SongWidgetView::MusicAlbumItem);
+        let model = gio::ListStore::new::<CoreSong>();
+        bing_song_model!(obj, model, song_widget.coresong());
+    }
+
+    pub async fn play_album(&self, obj: &impl IsA<gtk::Widget>) {
+        let id = self.id();
+
+        let mut events = fetch_with_cache(
+            &format!("audio_{}", id),
+            CachePolicy::ReadCacheAndRefresh,
+            async move { JELLYFIN_CLIENT.get_songs(&id).await },
+        )
+        .await;
+
+        let Some(event) = events.recv().await else {
+            return;
+        };
+
+        let songs = match event {
+            CacheEvent::Data { data, .. } => data,
+            CacheEvent::Error(e) => {
+                obj.toast(e.to_user_facing());
+                return;
+            }
+        };
+
+        let song_widgets = songs
+            .items
+            .into_iter()
+            .map(|song| {
+                let item = TuItem::from_simple(song);
+                let song_widget = SongWidget::new(item, SongWidgetView::MusicAlbumItem);
+                song_widget.coresong()
+            })
+            .collect::<Vec<_>>();
+
+        let Some(first) = song_widgets.first() else {
+            return;
+        };
+
+        let model = gio::ListStore::new::<CoreSong>();
+        model.extend_from_slice(&song_widgets);
+        bing_song_model!(obj, model, first.to_owned());
+    }
+
+    pub async fn play_video(&self, obj: &impl IsA<gtk::Widget>) {
+        self.direct_play_video_id(obj, self.to_owned(), Vec::new())
+            .await;
+    }
+
+    pub async fn direct_play_video_id(
+        &self, obj: &impl IsA<gtk::Widget>, video: TuItem, episode_list: Vec<TuItem>,
+    ) {
+        if let Some(window) = obj.root().and_downcast_ref::<Window>() {
+            window.play_media(
+                None,
+                video,
+                episode_list,
+                None,
+                self.playback_position_ticks() as f64 / 10_000_000.0,
+            )
+        }
+    }
+
+    pub async fn play_series(&self, obj: &impl IsA<gtk::Widget>) {
+        let id = self.id();
+
+        let nextup_list =
+            match spawn_tokio(async move { JELLYFIN_CLIENT.get_shows_next_up(&id).await }).await {
+                Ok(list) => list,
+                Err(e) => {
+                    obj.toast(e.to_user_facing());
+                    return;
+                }
+            };
+
+        let Some(nextup_item) = nextup_list.items.first() else {
+            obj.toast(gettext("No next up video found"));
+            return;
+        };
+
+        self.direct_play_video_id(
+            obj,
+            TuItem::from_simple(nextup_item.to_owned()),
+            nextup_list
+                .items
+                .into_iter()
+                .map(TuItem::from_simple)
+                .collect(),
+        )
+        .await;
+    }
+
+    pub fn fmt_period(&self) -> String {
+        // '2022' '2022 - 2023' '2022 - Present' '2022 - Unknown'
+        let production_year = self.production_year();
+
+        if production_year == 0 {
+            return String::new();
+        }
+
+        let Some(status) = self.status() else {
+            return production_year.to_string();
+        };
+
+        if status.as_str() == "Continuing" {
+            return format!("{production_year} - {}", gettext("Present"));
+        }
+
+        if status.as_str() != "Ended" {
+            return production_year.to_string();
+        }
+
+        let Some(end_date) = self.end_date() else {
+            return format!("{production_year} - {}", gettext("Unknown"));
+        };
+
+        let end_year = end_date.year();
+
+        if end_year != production_year as i32 {
+            format!("{production_year} - {end_year}")
+        } else {
+            format!("{end_year}")
+        }
+    }
+
+    pub fn fmt_production_year(&self) -> String {
+        let production_year = self.production_year();
+
+        if production_year != 0 {
+            production_year.to_string()
+        } else {
+            gettext("Unknown")
+        }
+    }
+
+    pub fn fmt_tv_name(&self) -> String {
+        let Some(program_name) = self.program_name() else {
+            return self.name();
+        };
+
+        format!("{} - {program_name})", self.name())
+    }
+
+    pub fn fmt_episode_detail(&self) -> String {
+        format!(
+            "S{}E{}: {}",
+            self.parent_index_number(),
+            self.index_number(),
+            self.name()
+        )
+    }
+
+    pub fn fmt_tv_progress_and_start_end_time(&self) -> (f64, String) {
+        fn default() -> (f64, String) {
+            (0.0, gettext("Unknown").to_string())
+        }
+
+        let Some(Ok(program_start_time)) = self.program_start_time().map(|t| t.to_local()) else {
+            return default();
+        };
+
+        let Some(Ok(program_end_time)) = self.program_end_time().map(|t| t.to_local()) else {
+            return default();
+        };
+
+        let Ok(now) = glib::DateTime::now_local() else {
+            return default();
+        };
+
+        let progress = ((now.to_unix() - program_start_time.to_unix()) as f64
+            / (program_end_time.to_unix() - program_start_time.to_unix()) as f64)
+            * 100.0;
+
+        let start_end_time = format!(
+            "{} - {}",
+            program_start_time
+                .format("%H:%M")
+                .unwrap_or_else(|_| gettext("Unknown").into()),
+            program_end_time
+                .format("%H:%M")
+                .unwrap_or_else(|_| gettext("Unknown").into())
+        );
+
+        (progress, start_end_time)
+    }
+
+    pub fn fmt_season_premiere_date(&self) -> String {
+        self.premiere_date()
+            .and_then(|premiere_date| premiere_date.format("%Y-%m-%d").ok())
+            .unwrap_or_default()
+            .into()
+    }
+
+    pub fn fmt_title(&self) -> String {
+        match self.item_type().as_str() {
+            TV_CHANNEL => self.fmt_tv_name(),
+            EPISODE if let Some(series_name) = self.series_name() => series_name,
+            _ => self.name(),
+        }
+    }
+
+    pub fn fmt_subtitle(&self) -> String {
+        match self.item_type().as_str() {
+            TV_CHANNEL => self.fmt_tv_progress_and_start_end_time().1,
+            MOVIE => self.fmt_production_year(),
+            EPISODE if self.series_name().is_some() => self.fmt_episode_detail(),
+            SEASON => self.fmt_season_premiere_date(),
+            SERIES => self.fmt_period(),
+            MUSIC_ALBUM => self.albumartist_name(),
+            ACTOR | PERSON | DIRECTOR | WRITER | PRODUCER | GUEST_STAR => {
+                self.role().unwrap_or_default()
+            }
+            _ => String::new(),
+        }
+    }
+
+    pub fn fmt_percentage(&self) -> Option<f64> {
+        match self.item_type().as_str() {
+            TV_CHANNEL => Some(self.fmt_tv_progress_and_start_end_time().0),
+            MOVIE if self.is_resume() => Some(self.played_percentage()),
+            EPISODE => Some(self.played_percentage()),
+            _ => None,
+        }
+    }
+
+    pub fn has_unplayed_item(&self) -> bool {
+        match self.item_type().as_str() {
+            SERIES | SEASON => true,
+            MOVIE if !self.is_resume() => true,
+            EPISODE if !self.is_resume() => true,
+            _ => false,
+        }
+    }
+
+    pub fn has_played_mark(&self) -> bool {
+        self.has_unplayed_item() && self.played()
+    }
+
+    pub fn has_direct_play_mark(&self) -> bool {
+        match self.item_type().as_str() {
+            MOVIE if self.is_resume() => true,
+            EPISODE if self.is_resume() => true,
+            _ => false,
+        }
+    }
+
+    pub fn has_folder_mark(&self) -> bool {
+        matches!(self.item_type().as_str(), FOLDER)
+    }
+
+    pub fn list_item_title(&self) -> Option<String> {
+        let name = self.name();
+
+        if name.is_empty() {
+            return None;
+        }
+
+        if SETTINGS.item_text_display() == "full" {
+            return Some(self.fmt_title());
+        }
+
+        Some(match self.item_type().as_str() {
+            TV_CHANNEL | SEASON | BOX_SET | MUSIC_ALBUM | GENRE | TAG | FOLDER | PERSON
+            | DIRECTOR | WRITER | PRODUCER | GUEST_STAR | ACTOR => name,
+            EPISODE if self.series_name().is_some() && self.is_resume() => self.fmt_subtitle(),
+            MOVIE if self.is_resume() => self.fmt_title(),
+            _ => return None,
+        })
+    }
+
+    pub fn list_item_subtitle(&self) -> Option<String> {
+        if self.name().is_empty() || SETTINGS.item_text_display() != "full" {
+            return None;
+        }
+
+        let subtitle = self.fmt_subtitle();
+        (!subtitle.is_empty()).then_some(subtitle)
+    }
+
+    pub fn fmt_rating(&self) -> Option<String> {
+        self.rating()
+    }
+
+    pub fn can_direct_play(&self) -> bool {
+        matches!(self.item_type().as_str(), MOVIE | EPISODE) && self.is_resume()
+    }
+
+    pub fn key(&self) -> String {
+        format!("{}-{}-{}", self.name(), self.id(), self.item_type())
+    }
+}
+
+fn chrono_to_glib(datetime: &chrono::DateTime<chrono::Utc>) -> DateTime {
+    DateTime::from_iso8601(&datetime.to_rfc3339(), None).unwrap()
+}
+
+fn push_page_with_tag<T>(window: Window, page: T, tag: String, name: &str)
+where
+    T: NavigationPageExt,
+{
+    window.push_page(&page, &tag, name);
+}

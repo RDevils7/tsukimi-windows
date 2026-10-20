@@ -1,0 +1,289 @@
+use adw::{
+    prelude::*,
+    subclass::prelude::*,
+};
+use gtk::{
+    CompositeTemplate,
+    glib,
+    template_callbacks,
+};
+
+use crate::{
+    client::structs::SimpleListItem,
+    ui::{
+        provider::tu_object::TuObject,
+        widgets::{
+            hor_controls::HorControlsExt,
+            lazy_diff_view::LazyDiffView,
+            tu_item::{
+                CardOptions,
+                CardShape,
+            },
+            tu_list_item::TuListItem,
+        },
+    },
+};
+
+mod imp {
+    use std::{
+        cell::{
+            Cell,
+            OnceCell,
+            RefCell,
+        },
+        collections::HashMap,
+    };
+
+    use glib::subclass::InitializingObject;
+    use gtk::prelude::Cast;
+
+    use super::*;
+
+    #[derive(Debug, Default, CompositeTemplate, glib::Properties)]
+    #[template(resource = "/moe/tsuna/tsukimi/ui/hortu_scrolled.ui")]
+    #[properties(wrapper_type = super::HortuScrolled)]
+    pub struct HortuScrolled {
+        #[property(get, set, construct_only, default_value = false)]
+        pub is_resume: OnceCell<bool>,
+        #[template_child]
+        pub label: TemplateChild<gtk::Label>,
+        #[template_child]
+        pub diffview: TemplateChild<LazyDiffView>,
+        #[template_child]
+        pub revealer: TemplateChild<gtk::Revealer>,
+        #[template_child]
+        pub morebutton: TemplateChild<gtk::Button>,
+        #[template_child]
+        pub left_button: TemplateChild<gtk::Button>,
+        #[template_child]
+        pub right_button: TemplateChild<gtk::Button>,
+
+        #[property(get, set, default_value = false)]
+        pub moreview: Cell<bool>,
+        #[property(get, set)]
+        pub title: RefCell<String>,
+
+        #[property(get, set, builder(CardShape::default()))]
+        pub card_shape: Cell<CardShape>,
+
+        #[property(get, set, default = false)]
+        pub prefer_thumb: Cell<bool>,
+        #[property(get, set, default = false)]
+        pub prefer_parent_poster: Cell<bool>,
+
+        pub show_left_animation: OnceCell<adw::TimedAnimation>,
+        pub hide_left_animation: OnceCell<adw::TimedAnimation>,
+        pub show_right_animation: OnceCell<adw::TimedAnimation>,
+        pub hide_right_animation: OnceCell<adw::TimedAnimation>,
+        pub is_hovering: Cell<bool>,
+        pub item_cache: RefCell<HashMap<String, TuObject>>,
+        #[property(get, set, builder(CardShape::default()))]
+        pub resolved_card_shape: Cell<CardShape>,
+    }
+
+    #[glib::object_subclass]
+    impl ObjectSubclass for HortuScrolled {
+        const NAME: &'static str = "HortuScrolled";
+        type Type = super::HortuScrolled;
+        type ParentType = adw::Bin;
+
+        fn class_init(klass: &mut Self::Class) {
+            klass.bind_template();
+            klass.bind_template_instance_callbacks();
+        }
+
+        fn instance_init(obj: &InitializingObject<Self>) {
+            obj.init_template();
+        }
+    }
+
+    #[glib::derived_properties]
+    impl ObjectImpl for HortuScrolled {
+        fn constructed(&self) {
+            self.parent_constructed();
+
+            let obj = self.obj();
+
+            self.diffview.set_orientation(gtk::Orientation::Horizontal);
+            let weak_obj = obj.downgrade();
+            self.diffview.configure(
+                |tu_obj: &TuObject| tu_obj.item().key(),
+                move |_tu_obj: &TuObject| {
+                    let tu_item = TuListItem::default();
+                    if let Some(obj) = weak_obj.upgrade() {
+                        tu_item.set_card_options(obj.card_options());
+                    }
+
+                    let gesture = gtk::GestureClick::new();
+                    gesture.set_button(1);
+                    gesture.connect_released(glib::clone!(
+                        #[weak]
+                        tu_item,
+                        move |gesture, _, x, y| {
+                            if !tu_item.contains(x, y) {
+                                return;
+                            }
+                            gesture.set_state(gtk::EventSequenceState::Claimed);
+                            tu_item.item().activate(&tu_item);
+                        }
+                    ));
+                    tu_item.add_controller(gesture);
+
+                    tu_item.upcast::<gtk::Widget>()
+                },
+                |widget, tu_obj: &TuObject| {
+                    let tu_item = widget
+                        .downcast_ref::<TuListItem>()
+                        .expect("LazyDiffView row must be a TuListItem");
+                    tu_item.set_item(tu_obj.item());
+                },
+            );
+
+            self.obj().connect_scroll_controls();
+        }
+    }
+
+    impl WidgetImpl for HortuScrolled {}
+
+    impl BinImpl for HortuScrolled {}
+}
+
+glib::wrapper! {
+    /// A scrolled list of items.
+    pub struct HortuScrolled(ObjectSubclass<imp::HortuScrolled>)
+        @extends gtk::Widget, adw::Bin, @implements gtk::Accessible, gtk::Buildable, gtk::ConstraintTarget;
+}
+
+impl Default for HortuScrolled {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+#[template_callbacks]
+impl HortuScrolled {
+    pub fn new() -> Self {
+        glib::Object::new()
+    }
+
+    pub fn set_morebutton(&self) {
+        let imp = self.imp();
+        imp.morebutton.set_visible(true);
+    }
+
+    pub fn set_card_options(&self, options: CardOptions) {
+        self.set_card_shape(options.shape);
+        self.set_prefer_thumb(options.prefer_thumb);
+        self.set_prefer_parent_poster(options.prefer_parent_poster);
+    }
+
+    fn card_options(&self) -> CardOptions {
+        CardOptions {
+            shape: self.resolved_card_shape(),
+            prefer_thumb: self.prefer_thumb(),
+            prefer_parent_poster: self.prefer_parent_poster(),
+        }
+    }
+
+    pub fn set_items(&self, items: Vec<SimpleListItem>) {
+        let imp = self.imp();
+
+        if items.is_empty() {
+            imp.diffview.set_items(Vec::<TuObject>::new());
+            imp.revealer.set_reveal_child(false);
+            return;
+        }
+
+        self.set_resolved_card_shape(self.card_shape().resolve(&items));
+        let visible_ids = items
+            .iter()
+            .map(|item| item.id.as_str())
+            .collect::<std::collections::HashSet<_>>();
+        imp.item_cache
+            .borrow_mut()
+            .retain(|id, _| visible_ids.contains(id.as_str()));
+
+        let items = items
+            .into_iter()
+            .map(|item| {
+                let mut cache = imp.item_cache.borrow_mut();
+                let object = if let Some(object) = cache.get(&item.id) {
+                    object.clone()
+                } else {
+                    let object = TuObject::from_simple(item.to_owned());
+                    cache.insert(object.item().key(), object.clone());
+                    object
+                };
+                let tu_item = object.item();
+                tu_item.update_user_data(&item.user_data);
+                tu_item.set_is_resume(self.is_resume());
+                object
+            })
+            .collect::<Vec<_>>();
+
+        imp.diffview.set_items(items);
+
+        imp.revealer.set_reveal_child(true);
+    }
+
+    #[template_callback]
+    fn on_rightbutton_clicked(&self) {
+        self.scroll_controls_anime::<true>();
+    }
+
+    #[template_callback]
+    fn on_enter_focus(&self) {
+        self.on_enter_scroll_controls();
+    }
+
+    #[template_callback]
+    fn on_leave_focus(&self) {
+        self.on_leave_scroll_controls();
+    }
+
+    #[template_callback]
+    fn on_leftbutton_clicked(&self) {
+        self.scroll_controls_anime::<false>();
+    }
+
+    pub fn connect_morebutton<F>(&self, cb: F)
+    where
+        F: Fn(&gtk::Button) + 'static,
+    {
+        self.imp().morebutton.connect_clicked(cb);
+    }
+}
+
+impl HorControlsExt for HortuScrolled {
+    fn scroll_widget(&self) -> gtk::ScrolledWindow {
+        self.imp().diffview.scroll()
+    }
+
+    fn left_button(&self) -> gtk::Button {
+        self.imp().left_button.get()
+    }
+
+    fn right_button(&self) -> gtk::Button {
+        self.imp().right_button.get()
+    }
+
+    fn show_left_animation_cell(&self) -> &std::cell::OnceCell<adw::TimedAnimation> {
+        &self.imp().show_left_animation
+    }
+
+    fn hide_left_animation_cell(&self) -> &std::cell::OnceCell<adw::TimedAnimation> {
+        &self.imp().hide_left_animation
+    }
+
+    fn show_right_animation_cell(&self) -> &std::cell::OnceCell<adw::TimedAnimation> {
+        &self.imp().show_right_animation
+    }
+
+    fn hide_right_animation_cell(&self) -> &std::cell::OnceCell<adw::TimedAnimation> {
+        &self.imp().hide_right_animation
+    }
+
+    fn is_hovering(&self) -> &std::cell::Cell<bool> {
+        &self.imp().is_hovering
+    }
+}

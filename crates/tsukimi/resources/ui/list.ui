@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+  <template parent="AdwNavigationPage" class="ListPage">
+    <property name="title">Tsukimi</property>
+    <child>
+      <object class="AdwToolbarView">
+        <child type="top">
+          <object class="GtkScrolledWindow">
+            <property name="hscrollbar-policy">external</property>
+            <property name="vscrollbar-policy">never</property>
+            <property name="margin-start">50</property>
+            <property name="margin-end">50</property>
+            <property name="margin-top">10</property>
+            <property name="margin-bottom">10</property>
+            <child>
+              <object class="GtkStackSwitcher">
+                <property name="halign">center</property>
+                <property name="stack">stack</property>
+              </object>
+            </child>
+            <style>
+              <class name="undershoot-start"/>
+              <class name="undershoot-end"/>
+            </style>
+          </object>
+        </child>
+        <property name="content">
+          <object class="GtkStack" id="stack">
+            <property name="transition-type">slide-left-right</property>
+          </object>
+        </property>
+      </object>
+    </child>
+  </template>
+</interface>

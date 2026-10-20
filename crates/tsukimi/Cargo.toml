@@ -1,0 +1,84 @@
+[package]
+name = "tsukimi"
+version = "26.9.2"
+edition.workspace = true
+rust-version.workspace = true
+description = "A simple Jellyfin Client written by GTK4-RS"
+license = "GPL-3.0"
+publish = false
+
+[dependencies]
+gtk = { workspace = true, features = ["v4_22"] }
+adw = { workspace = true, features = ["v1_9"] }
+serde = { workspace = true, features = ["derive"] }
+serde_json.workspace = true
+tokio = { workspace = true, features = ["full"] }
+reqwest = { workspace = true, features = [
+  "http2",
+  "rustls",
+  "json",
+  "query",
+  "gzip",
+] }
+yzlm.workspace = true
+once_cell.workspace = true
+bytefmt.workspace = true
+uuid = { workspace = true, features = ["v4"] }
+chrono = { workspace = true, features = ["serde"] }
+tracing.workspace = true
+gst.workspace = true
+url.workspace = true
+gettext-rs = { workspace = true, features = ["gettext-system"] }
+hostname.workspace = true
+arc-swap.workspace = true
+flume.workspace = true
+derive_builder.workspace = true
+anyhow.workspace = true
+tracing-subscriber = { workspace = true, features = ["chrono", "env-filter"] }
+regex.workspace = true
+strsim.workspace = true
+clap = { workspace = true, features = ["derive"] }
+fnv.workspace = true
+rand.workspace = true
+base64.workspace = true
+xxhash-rust = { workspace = true, features = ["xxh3"] }
+futures-util.workspace = true
+itertools.workspace = true
+moka = { workspace = true, features = ["future"] }
+
+mutsumi.workspace = true
+dandanapi-client.workspace = true
+
+[target.'cfg(target_os = "linux")'.dependencies]
+glycin = { workspace = true, features = ["gdk4", "tokio"] }
+mpris-server.workspace = true
+gdk-x11 = { workspace = true, features = [
+  "v4_18",
+  "xlib",
+] }
+gdk-wayland = { workspace = true, features = [
+  "v4_18",
+  "wayland_crate",
+] }
+
+[target.'cfg(not(target_os = "linux"))'.dependencies]
+gdk-pixbuf.workspace = true
+
+[dev-dependencies]
+cargo-husky = { workspace = true, features = ["user-hooks"] }
+
+[target.'cfg(target_os = "windows")'.build-dependencies]
+embed-resource = "3.0"
+
+[target.'cfg(target_os = "windows")'.dependencies]
+windows = { version = "0.62", features = [
+  "Win32_Foundation",
+  "Win32_System_Power",
+] }
+
+[features]
+console = []
+default = ["protocols", "render"]
+protocols = []
+render = []
+build_libmpv = []

@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+  <template parent="AdwDialog" class="IdentifyDialog">
+    <property name="content-width">800</property>
+    <property name="content-height">1000</property>
+    <property name="title" translatable="yes">Identify</property>
+    <child>
+      <object class="AdwToastOverlay" id="toast_overlay">
+        <child>
+          <object class="AdwNavigationView" id="navigation_view">
+            <child>
+              <object class="AdwNavigationPage" id="page">
+                <property name="tag">main</property>
+                <property name="title" translatable="yes">Identify</property>
+                <property name="child">
+                  <object class="AdwToolbarView">
+                    <child type="top">
+                      <object class="AdwHeaderBar">
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkStack" id="stack">
+                        <property name="transition-type">crossfade</property>
+                        <child>
+                          <object class="GtkStackPage">
+                            <property name="name">loading</property>
+                            <property name="title">Loading</property>
+                            <property name="child">
+                              <object class="AdwSpinner">
+                                <property name="visible">True</property>
+                                <property name="halign">center</property>
+                                <property name="valign">center</property>
+                                <property name="width-request">32</property>
+                                <property name="height-request">32</property>
+                              </object>
+                            </property>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkStackPage">
+                            <property name="name">page</property>
+                            <property name="title">View Metadata</property>
+                            <property name="child">
+                              <object class="GtkScrolledWindow">
+                                <property name="hscrollbar-policy">never</property>
+                                <child>
+                                  <object class="AdwClamp">
+                                    <property name="margin-top">36</property>
+                                    <property name="margin-bottom">12</property>
+                                    <property name="vexpand">True</property>
+                                    <child>
+                                      <object class="GtkBox">
+                                        <property name="orientation">vertical</property>
+                                        <property name="spacing">18</property>
+                                        <child>
+                                          <object class="AdwPreferencesGroup">
+                                            <property name="description" translatable="yes">Enter one or more search criteria. Remove criteria to increase search results.</property>
+                                            <child>
+                                              <object class="AdwActionRow" id="path_row">
+                                                <property name="use-markup">False</property>
+                                                <property name="title" translatable="yes">Path</property>
+                                                <property name="subtitle" translatable="yes">Loading...</property>
+                                                <property name="subtitle-selectable">True</property>
+                                                <style>
+                                                  <class name="property"/>
+                                                </style>
+                                              </object>
+                                            </child>
+                                          </object>
+                                        </child>
+                                        <child>
+                                          <object class="AdwPreferencesGroup">
+                                            <child>
+                                              <object class="AdwEntryRow" id="name_entry">
+                                                <property name="title" translatable="yes">Name</property>
+                                              </object>
+                                            </child>
+                                            <child>
+                                              <object class="AdwEntryRow" id="year_entry">
+                                                <property name="title" translatable="yes">Year</property>
+                                              </object>
+                                            </child>
+                                          </object>
+                                        </child>
+                                        <child>
+                                          <object class="AdwPreferencesGroup" id="entries_group">
+                                            <property name="title" translatable="yes">External</property>
+                                          </object>
+                                        </child>
+                                        <child>
+                                          <object class="AdwPreferencesGroup">
+                                            <child>
+                                              <object class="AdwButtonRow">
+                                                <signal name="activated" handler="on_search_button_clicked" swapped="yes"/>
+                                                <property name="title" translatable="yes">Search</property>
+                                                <property name="start-icon-name">system-search-symbolic</property>
+                                                <style>
+                                                  <class name="suggested-action"/>
+                                                </style>
+                                              </object>
+                                            </child>
+                                          </object>
+                                        </child>
+                                      </object>
+                                    </child>
+                                  </object>
+                                </child>
+                              </object>
+                            </property>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                  </object>
+                </property>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+    </child>
+  </template>
+</interface>

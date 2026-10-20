@@ -1,0 +1,18 @@
+[package]
+name = "dandanapi"
+version = "0.2.0"
+edition.workspace = true
+rust-version.workspace = true
+description = "Dandanapi http client"
+license = "MIT"
+
+[dependencies]
+base64.workspace = true
+chrono.workspace = true
+futures.workspace = true
+reqwest = { workspace = true, features = ["json", "query"] }
+serde = { workspace = true, features = ["derive"] }
+serde_json.workspace = true
+sha2.workspace = true
+thiserror.workspace = true
+tokio.workspace = true

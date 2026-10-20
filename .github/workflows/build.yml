@@ -1,0 +1,50 @@
+name: Build
+
+on:
+  workflow_dispatch:
+  push:
+    branches: 
+      - "main"
+    tags:
+      - "*"
+    paths-ignore:
+      - "docs/**"
+      - "**/.gitignore"
+      - "**/.dockerignore"
+      - "LICENSE"
+      - "**/*.md"
+  pull_request:
+    branches:
+      - "main"
+    paths-ignore:
+      - "docs/**"
+      - "**/.gitignore"
+      - "**/.dockerignore"
+      - "LICENSE"
+      - "**/*.md"
+
+permissions:
+  contents: write
+
+jobs:
+  lint:
+    name: Lint
+    uses: ./.github/workflows/lint.yaml
+    secrets: inherit
+
+  linux:
+    name: Linux
+    uses: ./.github/workflows/build_linux.yml
+    secrets: inherit
+
+  windows:
+    name: Windows
+    uses: ./.github/workflows/build_windows.yml
+    secrets: inherit
+
+  artifacts:
+    name: Artifacts
+    if: ${{ github.event_name != 'pull_request' }}
+    uses: ./.github/workflows/artifacts.yml
+    needs: [linux, windows]
+    secrets: inherit
