@@ -142,13 +142,13 @@ fn compile_gschemas() {
     let source = manifest_dir()
         .join("resources")
         .join("moe.tsuna.tsukimi.gschema.xml");
-    fs::copy(
-        &source,
-        schema_dir.join("moe.tsuna.tsukimi.gschema.xml"),
-    )
-    .expect("Failed to copy gschema");
+    fs::copy(&source, schema_dir.join("moe.tsuna.tsukimi.gschema.xml"))
+        .expect("Failed to copy gschema");
 
-    match Command::new("glib-compile-schemas").arg(&schema_dir).output() {
+    match Command::new("glib-compile-schemas")
+        .arg(&schema_dir)
+        .output()
+    {
         Ok(output) if output.status.success() => {
             println!(
                 "cargo:rustc-env=TSUKIMI_SCHEMA_BUILD_DIR={}",

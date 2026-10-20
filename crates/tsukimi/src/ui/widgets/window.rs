@@ -1028,9 +1028,7 @@ impl Window {
         };
 
         let state = unsafe {
-            SetThreadExecutionState(
-                ES_CONTINUOUS | ES_DISPLAY_REQUIRED | ES_SYSTEM_REQUIRED,
-            )
+            SetThreadExecutionState(ES_CONTINUOUS | ES_DISPLAY_REQUIRED | ES_SYSTEM_REQUIRED)
         };
         if state == ES_CONTINUOUS {
             eprintln!("Failed to set thread execution state");

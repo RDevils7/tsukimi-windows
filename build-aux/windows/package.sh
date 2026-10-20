@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Build a portable Windows bundle for tsukimi from a MINGW64 release build.
+# Build a portable Windows bundle for tsukimi from a UCRT64 release build.
 #
 # Usage:
 #   bash build-aux/windows/package.sh [TARGET] [OUTPUT_DIR]
@@ -8,7 +8,7 @@
 #   OUTPUT_DIR  Where the final zip is placed (default: dist)
 #
 # Environment overrides:
-#   MINGW_PREFIX     MSYS2 MINGW64 prefix (default: /mingw64)
+#   MINGW_PREFIX     MSYS2 UCRT64 prefix (default: /ucrt64)
 #   CARGO_TARGET_DIR Cargo target directory (default: target)
 #   STAGE_NAME       Name of the bundled top-level directory
 #                    (default: tsukimi-x86_64-windows)
@@ -35,7 +35,7 @@ set -euo pipefail
 
 TARGET="${1:-x86_64-pc-windows-gnu}"
 OUTPUT_DIR="${2:-dist}"
-MINGW_PREFIX="${MINGW_PREFIX:-/mingw64}"
+MINGW_PREFIX="${MINGW_PREFIX:-/ucrt64}"
 TARGET_DIR="${CARGO_TARGET_DIR:-target}"
 STAGE_NAME="${STAGE_NAME:-tsukimi-x86_64-windows}"
 

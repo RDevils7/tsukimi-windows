@@ -17,14 +17,14 @@ use super::backend::{
     TrackSelection,
 };
 
+#[cfg(not(target_os = "linux"))]
+use crate::MPVGLArea;
 #[cfg(target_os = "linux")]
 use crate::{
     MutsumiVideoSink,
     VIEWPORT_CHANNEL,
     Viewport,
 };
-#[cfg(not(target_os = "linux"))]
-use crate::MPVGLArea;
 
 mod imp {
     use std::cell::Cell;
@@ -38,14 +38,14 @@ mod imp {
         CssProvider,
     };
 
+    #[cfg(not(target_os = "linux"))]
+    use crate::MPVGLArea;
     #[cfg(target_os = "linux")]
     use crate::{
         MutsumiVideoSink,
         VIEWPORT_CHANNEL,
         Viewport,
     };
-    #[cfg(not(target_os = "linux"))]
-    use crate::MPVGLArea;
 
     use super::*;
     use crate::video::layout::MutsumiVideoLayout;

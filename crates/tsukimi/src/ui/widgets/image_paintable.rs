@@ -1,9 +1,9 @@
+#[cfg(not(target_os = "linux"))]
+use std::time::SystemTime;
 use std::{
     rc::Rc,
     time::Duration,
 };
-#[cfg(not(target_os = "linux"))]
-use std::time::SystemTime;
 
 use anyhow::{
     Result,
@@ -287,10 +287,9 @@ impl ImagePaintable {
         first_frame: &gdk_pixbuf::Pixbuf, delay: Duration,
     ) -> Self {
         let obj = glib::Object::new::<Self>();
-        obj.imp().image.replace(Some(Rc::new(FrameSource::Pixbuf {
-            animation,
-            iter,
-        })));
+        obj.imp()
+            .image
+            .replace(Some(Rc::new(FrameSource::Pixbuf { animation, iter })));
         obj.show_frame(texture_from_pixbuf(first_frame), delay);
         obj
     }
@@ -330,11 +329,17 @@ impl ImagePaintable {
     fn load_next_frame(&self) {
         #[cfg(target_os = "linux")]
         {
-            let Some(image) = self.imp().image.borrow().as_ref().and_then(|source| match &**source {
-                FrameSource::Glycin(image) => Some(image.clone()),
-                #[cfg(not(target_os = "linux"))]
-                FrameSource::Pixbuf { .. } => None,
-            }) else {
+            let Some(image) = self
+                .imp()
+                .image
+                .borrow()
+                .as_ref()
+                .and_then(|source| match &**source {
+                    FrameSource::Glycin(image) => Some(image.clone()),
+                    #[cfg(not(target_os = "linux"))]
+                    FrameSource::Pixbuf { .. } => None,
+                })
+            else {
                 return;
             };
 
@@ -344,7 +349,9 @@ impl ImagePaintable {
                 async move {
                     match image.next_frame().await {
                         Ok(frame) => obj.set_frame(frame),
-                        Err(error) => warn!("Failed to load animated image frame with glycin: {error}"),
+                        Err(error) => {
+                            warn!("Failed to load animated image frame with glycin: {error}")
+                        }
                     }
                 }
             ));

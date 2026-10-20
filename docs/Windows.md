@@ -35,31 +35,33 @@ Key implementation notes:
 
 Requirements:
 
-- [MSYS2](https://www.msys2.org/) with the `MINGW64` environment
-  (`C:\msys64\mingw64.exe`). Everything below runs inside that shell.
+- [MSYS2](https://www.msys2.org/) with the `UCRT64` environment
+  (`C:\msys64\ucrt64.exe`). Everything below runs inside that shell.
+  (MSYS2 deprecated the old `MINGW64` environment in March 2026 — new
+  packages are only published for UCRT64/CLANG64.)
 - A `x86_64-pc-windows-gnu` Rust toolchain via
   [rustup](https://rustup.rs/) (the MSYS2 CRT must match — do **not** mix
-  the `pc-windows-msvc` toolchain with the MINGW64 libraries).
+  the `pc-windows-msvc` toolchain with the UCRT64 libraries).
 
 Install the dependencies:
 
 ```bash
 pacman -S --needed \
-  mingw-w64-x86_64-toolchain \
-  mingw-w64-x86_64-pkgconf \
-  mingw-w64-x86_64-gtk4 \
-  mingw-w64-x86_64-libadwaita \
-  mingw-w64-x86_64-mpv \
-  mingw-w64-x86_64-libepoxy \
-  mingw-w64-x86_64-adwaita-icon-theme \
-  mingw-w64-x86_64-gettext \
-  mingw-w64-x86_64-gstreamer \
-  mingw-w64-x86_64-gst-plugins-base \
-  mingw-w64-x86_64-gst-plugins-good \
-  mingw-w64-x86_64-gst-plugins-bad \
-  mingw-w64-x86_64-gst-plugins-ugly \
-  mingw-w64-x86_64-gst-libav \
-  mingw-w64-x86_64-nsis \
+  mingw-w64-ucrt-x86_64-toolchain \
+  mingw-w64-ucrt-x86_64-pkgconf \
+  mingw-w64-ucrt-x86_64-gtk4 \
+  mingw-w64-ucrt-x86_64-libadwaita \
+  mingw-w64-ucrt-x86_64-mpv \
+  mingw-w64-ucrt-x86_64-libepoxy \
+  mingw-w64-ucrt-x86_64-adwaita-icon-theme \
+  mingw-w64-ucrt-x86_64-gettext \
+  mingw-w64-ucrt-x86_64-gstreamer \
+  mingw-w64-ucrt-x86_64-gst-plugins-base \
+  mingw-w64-ucrt-x86_64-gst-plugins-good \
+  mingw-w64-ucrt-x86_64-gst-plugins-bad \
+  mingw-w64-ucrt-x86_64-gst-plugins-ugly \
+  mingw-w64-ucrt-x86_64-gst-libav \
+  mingw-w64-ucrt-x86_64-nsis \
   zip
 ```
 
@@ -71,8 +73,8 @@ rustup default stable-x86_64-pc-windows-gnu
 Build and run from the repository root:
 
 ```bash
-# -L native lets the linker find libmpv and friends in /mingw64/lib
-RUSTFLAGS="-L native=/mingw64/lib" \
+# -L native lets the linker find libmpv and friends in /ucrt64/lib
+RUSTFLAGS="-L native=/ucrt64/lib" \
   cargo run --release --target x86_64-pc-windows-gnu
 ```
 
@@ -161,6 +163,6 @@ desktop shortcuts, and registers an uninstaller entry.
 ## Continuous integration
 
 `.github/workflows/build_windows.yml` runs the same steps on
-`windows-latest` (MSYS2 MINGW64 + `stable-x86_64-pc-windows-gnu`), builds
+`windows-latest` (MSYS2 UCRT64 + `stable-x86_64-pc-windows-gnu`), builds
 the portable zip and the NSIS installer, and uploads both as the
 `tsukimi-x86_64-windows` artifact.
