@@ -141,11 +141,15 @@ An optional NSIS installer (per-user, no administrator rights required) is
 built with:
 
 ```bash
-makensis "-DAPP_VERSION=26.9.2" installer/tsukimi.nsi
+VERSION="$(grep -m1 '^version' crates/tsukimi/Cargo.toml | cut -d '"' -f 2)"
+makensis "-DAPP_VERSION=$VERSION" installer/tsukimi.nsi
 ```
 
 It installs the bundle into `%LOCALAPPDATA%\Tsukimi`, creates Start Menu and
-desktop shortcuts, and registers an uninstaller entry.
+desktop shortcuts, and registers an uninstaller entry. The setup executable
+is written to the repository root as `tsukimi-x86_64-windows-setup.exe`
+(makensis resolves the script's relative paths against `installer/`, the
+directory holding the `.nsi` file, not against the invocation directory).
 
 ## Runtime notes and troubleshooting
 

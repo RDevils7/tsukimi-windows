@@ -4,8 +4,13 @@
 ;   makensis "-DAPP_VERSION=26.9.2" installer/tsukimi.nsi
 ;
 ; The installer expects the bundle directory `tsukimi-x86_64-windows/` to be
-; present in the current working directory. Everything is installed per-user
+; present in the repository root. Everything is installed per-user
 ; (no administrator rights required); the bundle itself remains relocatable.
+;
+; Path resolution: makensis resolves every relative path in this script
+; against the directory containing this file (installer/), not against the
+; directory makensis was invoked from. Paths that reach build outputs one
+; level up therefore start with "..\".
 
 Unicode true
 
@@ -17,12 +22,12 @@ Unicode true
 !define APP_PUBLISHER "tsukimi contributors"
 !define APP_URL "https://github.com/tsukinaha/tsukimi"
 !define APP_EXE "bin\tsukimi.exe"
-!define BUNDLE_DIR "tsukimi-x86_64-windows"
+!define BUNDLE_DIR "..\tsukimi-x86_64-windows"
 !define REG_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_NAME}"
 !define REG_ROOT "HKCU"
 
 Name "${APP_NAME} ${APP_VERSION}"
-OutFile "tsukimi-x86_64-windows-setup.exe"
+OutFile "..\tsukimi-x86_64-windows-setup.exe"
 InstallDir "$LOCALAPPDATA\${APP_NAME}"
 InstallDirRegKey "${REG_ROOT}" "${REG_KEY}" "InstallLocation"
 RequestExecutionLevel user
