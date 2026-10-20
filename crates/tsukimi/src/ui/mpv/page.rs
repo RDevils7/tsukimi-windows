@@ -111,6 +111,7 @@ mod imp {
 
     #[cfg(target_os = "linux")]
     use mpris_server::LocalServer;
+    #[cfg(target_os = "linux")]
     use once_cell::sync::OnceCell;
 
     use super::MediaSourceFallback;

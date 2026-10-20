@@ -23,6 +23,7 @@ use crate::MPVGLArea;
 use crate::MutsumiVideoSink;
 
 mod imp {
+    #[cfg(target_os = "linux")]
     use std::cell::Cell;
 
     use adw::{

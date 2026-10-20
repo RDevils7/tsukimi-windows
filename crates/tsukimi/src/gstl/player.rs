@@ -36,10 +36,9 @@ pub mod imp {
     #[cfg(target_os = "linux")]
     use mpris_server::LocalServer;
     use once_cell::sync::*;
-    use tracing::{
-        debug,
-        warn,
-    };
+    use tracing::debug;
+    #[cfg(target_os = "linux")]
+    use tracing::warn;
 
     use super::*;
     use crate::ui::widgets::song_widget::State;

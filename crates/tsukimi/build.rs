@@ -177,5 +177,5 @@ fn compile_gschemas() {
 #[cfg(windows)]
 fn embed_manifest() {
     let manifest = manifest_dir().join("tsukimi_manifest.rc");
-    embed_resource::compile(manifest, embed_resource::NONE);
+    let _ = embed_resource::compile(manifest, embed_resource::NONE);
 }

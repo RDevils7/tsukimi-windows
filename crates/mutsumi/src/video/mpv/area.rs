@@ -151,6 +151,8 @@ mod imp {
 
     impl MPVGLArea {
         fn setup_mpv(&self, gl_context: GLContext, display: Display) {
+            // `render_params` is only pushed to on X11 displays.
+            #[cfg_attr(not(target_os = "linux"), allow(unused_mut))]
             let mut render_params = vec![
                 RenderParam::ApiType(RenderParamApiType::OpenGl),
                 // Advanced control is required for hardware decoding interop

@@ -136,6 +136,9 @@ mod imp {
             }
 
             let scale = 1.0 + (self.max_scale.get() - 1.0) * progress;
+            // The tilt effect is disabled on Windows, where only `ny` is
+            // used by the lighting overlay.
+            #[cfg(not(windows))]
             let nx = self.cursor_nx.get();
             let ny = self.cursor_ny.get();
 

@@ -161,10 +161,12 @@ pub async fn paintable_from_file(
 
 /// gdk-pixbuf based loader for platforms without glycin (Windows, macOS).
 ///
-/// gdk-pixbuf has no async API, so the (potentially slow) decode runs on the
-/// shared tokio blocking pool. `http(s)` URIs are fetched with reqwest
-/// because GVfs, which provides GIO's network backends on Linux desktops,
-/// does not exist on Windows.
+/// gdk-pixbuf has no async API, so still images are decoded on the shared
+/// tokio blocking pool and travel back as raw pixels, because `Pixbuf` is
+/// `!Send`. Animated images are decoded on the main thread instead, because
+/// `PixbufAnimation` is `!Send` as well. `http(s)` URIs are fetched with
+/// reqwest because GVfs, which provides GIO's network backends on Linux
+/// desktops, does not exist on Windows.
 #[cfg(not(target_os = "linux"))]
 pub async fn paintable_from_file(
     file: gio::File, cancellable: Option<gio::Cancellable>,
@@ -179,23 +181,23 @@ pub async fn paintable_from_file(
         bail!("image load cancelled");
     }
 
-    let decoded = crate::utils::spawn_tokio_blocking(move || decode_image(&bytes)).await?;
+    let (decoded, bytes) = crate::utils::spawn_tokio_blocking(move || decode_image(bytes)).await?;
 
-    match decoded {
-        DecodedImage::Static(pixbuf) => {
-            if cancellable.as_ref().is_some_and(|c| c.is_cancelled()) {
-                bail!("image load cancelled");
-            }
+    let Some(image) = decoded else {
+        // The image is animated: decode it on the main thread, the only
+        // place the gdk-pixbuf animation objects may be used.
+        let (animation, iter) = decode_animation(&bytes)?;
+        let pixbuf = iter.pixbuf();
+        let delay = frame_delay(iter.delay_time());
 
-            Ok(texture_from_pixbuf(&pixbuf).upcast())
-        }
-        DecodedImage::Animated { animation, iter } => {
-            let pixbuf = iter.pixbuf();
-            let delay = frame_delay(iter.delay_time());
+        return Ok(ImagePaintable::new_pixbuf(animation, iter, &pixbuf, delay).upcast());
+    };
 
-            Ok(ImagePaintable::new_pixbuf(animation, iter, &pixbuf, delay).upcast())
-        }
+    if cancellable.as_ref().is_some_and(|c| c.is_cancelled()) {
+        bail!("image load cancelled");
     }
+
+    Ok(texture_from_pixbuf(&image.into_pixbuf()).upcast())
 }
 
 #[cfg(not(target_os = "linux"))]
@@ -222,35 +224,96 @@ async fn read_image_bytes(file: &gio::File) -> Result<Vec<u8>> {
                 .path()
                 .ok_or_else(|| anyhow::anyhow!("no local path for {}", file.uri()))?;
 
-            crate::utils::spawn_tokio_blocking(move || std::fs::read(path)).await?
+            Ok(crate::utils::spawn_tokio_blocking(move || std::fs::read(path)).await?)
         }
     }
 }
 
+/// Raw pixel data of a decoded still image.
+///
+/// `gdk_pixbuf::Pixbuf` is `!Send`, so a decoded image cannot travel back
+/// from the blocking pool; only its pixels can. The `Pixbuf` is rebuilt from
+/// them on the main thread, where GTK objects have to be created anyway.
 #[cfg(not(target_os = "linux"))]
-enum DecodedImage {
-    Static(gdk_pixbuf::Pixbuf),
-    #[allow(deprecated)]
-    Animated {
-        animation: gdk_pixbuf::PixbufAnimation,
-        iter: gdk_pixbuf::PixbufAnimationIter,
-    },
+struct PixbufData {
+    colorspace: gdk_pixbuf::Colorspace,
+    has_alpha: bool,
+    bits_per_sample: i32,
+    width: i32,
+    height: i32,
+    rowstride: i32,
+    pixels: Vec<u8>,
 }
 
 #[cfg(not(target_os = "linux"))]
-fn decode_image(bytes: &[u8]) -> Result<DecodedImage> {
+impl PixbufData {
+    fn from_pixbuf(pixbuf: &gdk_pixbuf::Pixbuf) -> Self {
+        Self {
+            colorspace: pixbuf.colorspace(),
+            has_alpha: pixbuf.has_alpha(),
+            bits_per_sample: pixbuf.bits_per_sample(),
+            width: pixbuf.width(),
+            height: pixbuf.height(),
+            rowstride: pixbuf.rowstride(),
+            pixels: pixbuf.read_pixel_bytes().to_vec(),
+        }
+    }
+
+    fn into_pixbuf(self) -> gdk_pixbuf::Pixbuf {
+        // Every parameter comes from a pixbuf gdk-pixbuf decoded itself, so
+        // `from_mut_slice`'s assertions always hold.
+        gdk_pixbuf::Pixbuf::from_mut_slice(
+            self.pixels,
+            self.colorspace,
+            self.has_alpha,
+            self.bits_per_sample,
+            self.width,
+            self.height,
+            self.rowstride,
+        )
+    }
+}
+
+/// Decode a still image on the blocking pool, returning its raw pixels.
+///
+/// Returns `(None, bytes)` for animated images; those are decoded on the main
+/// thread by [`decode_animation`], because the gdk-pixbuf animation objects
+/// are `!Send`. The bytes are handed back so that second parse is possible;
+/// animated images are rare and the first parse happens off the main thread.
+#[cfg(not(target_os = "linux"))]
+fn decode_image(bytes: Vec<u8>) -> Result<(Option<PixbufData>, Vec<u8>)> {
+    let loader = gdk_pixbuf::PixbufLoader::new();
+    loader.write(&bytes)?;
+    loader.close()?;
+
+    if loader.animation().is_some() {
+        return Ok((None, bytes));
+    }
+
+    let Some(pixbuf) = loader.pixbuf() else {
+        bail!("gdk-pixbuf could not decode the image");
+    };
+
+    Ok((Some(PixbufData::from_pixbuf(&pixbuf)), bytes))
+}
+
+/// Decode an animated image on the main thread.
+#[cfg(not(target_os = "linux"))]
+#[allow(deprecated)]
+fn decode_animation(
+    bytes: &[u8],
+) -> Result<(gdk_pixbuf::PixbufAnimation, gdk_pixbuf::PixbufAnimationIter)> {
     let loader = gdk_pixbuf::PixbufLoader::new();
     loader.write(bytes)?;
     loader.close()?;
 
-    if let Some(animation) = loader.animation() {
-        let iter = animation.iter(None);
-        Ok(DecodedImage::Animated { animation, iter })
-    } else if let Some(pixbuf) = loader.pixbuf() {
-        Ok(DecodedImage::Static(pixbuf))
-    } else {
-        bail!("gdk-pixbuf could not decode the image")
-    }
+    let Some(animation) = loader.animation() else {
+        bail!("gdk-pixbuf could not decode the animation");
+    };
+
+    let iter = animation.iter(None);
+
+    Ok((animation, iter))
 }
 
 #[cfg(not(target_os = "linux"))]
@@ -361,9 +424,9 @@ impl ImagePaintable {
                 return;
             };
 
-            let FrameSource::Pixbuf { iter, .. } = &*source else {
-                return;
-            };
+            // Without glycin this is the only variant of `FrameSource`, so
+            // the pattern is irrefutable; a `let ... else` would warn.
+            let FrameSource::Pixbuf { iter, .. } = &*source;
 
             if !iter.advance(SystemTime::now()) {
                 // The animation is over; keep showing the last frame.
