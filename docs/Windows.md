@@ -55,6 +55,7 @@ pacman -S --needed \
   mingw-w64-ucrt-x86_64-libepoxy \
   mingw-w64-ucrt-x86_64-adwaita-icon-theme \
   mingw-w64-ucrt-x86_64-gettext \
+  mingw-w64-ucrt-x86_64-blueprint-compiler \
   mingw-w64-ucrt-x86_64-gstreamer \
   mingw-w64-ucrt-x86_64-gst-plugins-base \
   mingw-w64-ucrt-x86_64-gst-plugins-good \
@@ -64,6 +65,11 @@ pacman -S --needed \
   mingw-w64-ucrt-x86_64-nsis \
   zip
 ```
+
+`blueprint-compiler` is required by `crates/mutsumi/build.rs` to compile
+the `.blp` templates at build time; install it from MSYS2 (a pip-installed
+`blueprint-compiler` on Windows is not on the MSYS2 `PATH` and will fail
+with `program not found`).
 
 ```bash
 rustup toolchain install stable-x86_64-pc-windows-gnu

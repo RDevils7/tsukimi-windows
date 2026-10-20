@@ -329,17 +329,11 @@ impl ImagePaintable {
     fn load_next_frame(&self) {
         #[cfg(target_os = "linux")]
         {
-            let Some(image) =
-                self.imp()
-                    .image
-                    .borrow()
-                    .as_ref()
-                    .and_then(|source| match &**source {
-                        FrameSource::Glycin(image) => Some(image.clone()),
-                        #[cfg(not(target_os = "linux"))]
-                        FrameSource::Pixbuf { .. } => None,
-                    })
-            else {
+            // `glycin::Image` is not `Clone`, so the `Rc` holding the frame
+            // source is moved into the spawned future and the borrow is taken
+            // inside it; borrowing the `RefCell` guard in the caller could
+            // not outlive the `'static` bound of the future.
+            let Some(source) = self.imp().image.borrow().as_ref().map(Rc::clone) else {
                 return;
             };
 
@@ -347,11 +341,15 @@ impl ImagePaintable {
                 #[weak(rename_to = obj)]
                 self,
                 async move {
-                    match image.next_frame().await {
-                        Ok(frame) => obj.set_frame(frame),
-                        Err(error) => {
-                            warn!("Failed to load animated image frame with glycin: {error}")
-                        }
+                    match &*source {
+                        FrameSource::Glycin(image) => match image.next_frame().await {
+                            Ok(frame) => obj.set_frame(frame),
+                            Err(error) => {
+                                warn!("Failed to load animated image frame with glycin: {error}")
+                            }
+                        },
+                        #[cfg(not(target_os = "linux"))]
+                        FrameSource::Pixbuf { .. } => {}
                     }
                 }
             ));

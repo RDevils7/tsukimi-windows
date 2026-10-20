@@ -1,6 +1,7 @@
+#[cfg(target_os = "windows")]
+use std::path::Path;
 use std::{
     env,
-    path::Path,
     sync::LazyLock,
 };
 

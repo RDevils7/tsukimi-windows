@@ -32,6 +32,7 @@ jobs:
             mingw-w64-ucrt-x86_64-libepoxy
             mingw-w64-ucrt-x86_64-adwaita-icon-theme
             mingw-w64-ucrt-x86_64-gettext
+            mingw-w64-ucrt-x86_64-blueprint-compiler
             mingw-w64-ucrt-x86_64-gstreamer
             mingw-w64-ucrt-x86_64-gst-plugins-base
             mingw-w64-ucrt-x86_64-gst-plugins-good
