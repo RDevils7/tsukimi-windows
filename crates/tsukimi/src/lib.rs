@@ -134,13 +134,11 @@ fn bootstrap_windows_runtime() {
     // which used to abort the whole process before the window appeared.
     //
     // On the windows-gnu target Rust's own setlocale() only mutates msvcrt's
-    // locale, which UCRT (used by the MSYS2 builds of mpv and GLib) ignores.
-    // UCRT's setlocale("") also only consults LC_ALL/LANG, not LC_NUMERIC, so
-    // the only reliable lever is the LC_ALL environment variable. Set it
-    // before GLib triggers UCRT's setlocale("") during startup.
-    if env::var_os("LC_ALL").is_none() {
-        unsafe { env::set_var("LC_ALL", "C") };
-    }
+    // locale, which UCRT (used by the MSYS2 builds of mpv and GLib) ignores,
+    // and the LC_ALL environment variable is only consulted by UCRT at dll
+    // initialization, so we call UCRT's setlocale() directly to set its
+    // process-global locale state.
+    force_ucrt_c_locale();
 
     if env::var_os("GSETTINGS_SCHEMA_DIR").is_none()
         && let Some(dir) = windows_schema_dir()
@@ -152,6 +150,49 @@ fn bootstrap_windows_runtime() {
     // the default (memory) backend would forget everything on exit.
     if env::var_os("GSETTINGS_BACKEND").is_none() {
         unsafe { env::set_var("GSETTINGS_BACKEND", "keyfile") };
+    }
+}
+
+/// Force UCRT's process-global locale to "C" by calling `setlocale()` in the
+/// `ucrtbase.dll` that the MSYS2 builds of mpv and GLib already loaded.
+///
+/// mpv's `mp_create()` returns NULL unless `LC_NUMERIC == "C"`. Rust's own
+/// `setlocale()` on the `windows-gnu` target targets msvcrt, whose locale
+/// state is independent of UCRT's, and setting the `LC_ALL` environment
+/// variable only takes effect when UCRT reads it at dll init — neither helps a
+/// process that is already running. Calling UCRT's `setlocale(LC_ALL, "C")`
+/// directly mutates the same global `ucrtbase.dll` state that mpv queries, so
+/// it is the only reliable fix here.
+#[cfg(target_os = "windows")]
+fn force_ucrt_c_locale() {
+    use std::{
+        ffi::c_void,
+        os::raw::{
+            c_char,
+            c_int,
+        },
+    };
+
+    #[link(name = "kernel32")]
+    extern "system" {
+        fn LoadLibraryW(lp_file_name: *const u16) -> *mut c_void;
+        fn GetProcAddress(h_module: *mut c_void, lp_proc_name: *const u8) -> *const c_void;
+    }
+
+    unsafe {
+        let name: Vec<u16> = "ucrtbase.dll\0".encode_utf16().collect();
+        let module = LoadLibraryW(name.as_ptr());
+        if module.is_null() {
+            return;
+        }
+        let proc = GetProcAddress(module, b"setlocale\0".as_ptr() as *const u8);
+        if proc.is_null() {
+            return;
+        }
+        type SetLocale = unsafe extern "C" fn(c_int, *const c_char) -> *mut c_char;
+        let setlocale = core::mem::transmute::<*const c_void, SetLocale>(proc);
+        // LC_ALL == 6 on Windows; setting it to "C" also resets LC_NUMERIC.
+        setlocale(6, b"C\0".as_ptr() as *const c_char);
     }
 }
 
