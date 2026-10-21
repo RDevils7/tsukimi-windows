@@ -47,6 +47,11 @@ pub fn run() -> gtk::glib::ExitCode {
 
     // Initialize gettext
     unsafe { setlocale(LocaleCategory::LcAll, String::new()) };
+    // mpv's mp_create() refuses to run unless LC_NUMERIC is "C" (it prints
+    // "Non-C locale detected" and returns NULL, which used to abort the whole
+    // application before the window could appear). Restore it after the
+    // LC_ALL="" environment lookup above, as libmpv's documentation requires.
+    unsafe { setlocale(LocaleCategory::LcNumeric, "C") };
     bind_textdomain_codeset(GETTEXT_PACKAGE, "UTF-8").expect("Failed to set textdomain codeset");
     bindtextdomain(GETTEXT_PACKAGE, locale_dir())
         .expect("Invalid argument passed to bindtextdomain");
