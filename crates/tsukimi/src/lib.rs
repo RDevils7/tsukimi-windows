@@ -129,6 +129,19 @@ pub fn locale_dir() -> &'static str {
 /// for `cargo run`) and select the keyfile backend so preferences persist.
 #[cfg(target_os = "windows")]
 fn bootstrap_windows_runtime() {
+    // mpv (built against UCRT) refuses to initialize unless LC_NUMERIC=="C":
+    // it prints "Non-C locale detected" and returns NULL from mpv_create(),
+    // which used to abort the whole process before the window appeared.
+    //
+    // On the windows-gnu target Rust's own setlocale() only mutates msvcrt's
+    // locale, which UCRT (used by the MSYS2 builds of mpv and GLib) ignores.
+    // UCRT's setlocale("") also only consults LC_ALL/LANG, not LC_NUMERIC, so
+    // the only reliable lever is the LC_ALL environment variable. Set it
+    // before GLib triggers UCRT's setlocale("") during startup.
+    if env::var_os("LC_ALL").is_none() {
+        unsafe { env::set_var("LC_ALL", "C") };
+    }
+
     if env::var_os("GSETTINGS_SCHEMA_DIR").is_none()
         && let Some(dir) = windows_schema_dir()
     {
