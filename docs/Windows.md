@@ -179,5 +179,6 @@ directory holding the `.nsi` file, not against the invocation directory).
 
 `.github/workflows/build_windows.yml` runs the same steps on
 `windows-latest` (MSYS2 UCRT64 + `stable-x86_64-pc-windows-gnu`), builds
-the portable zip and the NSIS installer, and uploads both as the
-`tsukimi-x86_64-windows` artifact.
+the portable zip and the NSIS installer, and uploads them as the
+`tsukimi-x86_64-windows` and `tsukimi-x86_64-windows-setup` artifacts
+(each artifact holds a single file).

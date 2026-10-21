@@ -76,11 +76,18 @@ jobs:
           makensis "-DAPP_VERSION=$VERSION" installer/tsukimi.nsi
           mv tsukimi-x86_64-windows-setup.exe dist/
 
-      - name: Upload artifact
+      # upload-artifact with archive: false only accepts a single file, so
+      # the portable bundle and the installer are uploaded as two artifacts.
+      - name: Upload portable bundle
         uses: actions/upload-artifact@v7
         with:
           name: tsukimi-x86_64-windows
-          path: |
-            dist/tsukimi-x86_64-windows.zip
-            dist/tsukimi-x86_64-windows-setup.exe
+          path: dist/tsukimi-x86_64-windows.zip
+          archive: false
+
+      - name: Upload installer
+        uses: actions/upload-artifact@v7
+        with:
+          name: tsukimi-x86_64-windows-setup
+          path: dist/tsukimi-x86_64-windows-setup.exe
           archive: false
