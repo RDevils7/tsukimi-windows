@@ -19,6 +19,13 @@ use crate::dyn_event;
 
 /// gl renderer will glitch on fractional scaling
 /// vulkan renderer has poor performance
+/// On Windows the gl renderer usually cannot be realized ("OpenGL requires
+/// Direct Composition") and the automatic vulkan fallback has been observed
+/// to crash silently on hybrid Intel+NVIDIA machines, so default to cairo
+/// (CPU rendering) there; --gsk-renderer can still override it.
+#[cfg(target_os = "windows")]
+const DEFAULT_RENDERER: &str = "cairo";
+#[cfg(not(target_os = "windows"))]
 const DEFAULT_RENDERER: &str = "gl";
 
 #[derive(Parser, Debug)]
